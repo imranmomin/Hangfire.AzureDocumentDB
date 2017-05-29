@@ -17,11 +17,13 @@ namespace Hangfire.AzureDocumentDB.Queue
         private readonly TimeSpan checkInterval;
         private readonly object syncLock = new object();
         private readonly FeedOptions queryOptions = new FeedOptions { MaxItemCount = 1 };
+        private readonly Uri spDeleteDocumentIfExistsUri;
 
         public JobQueue(AzureDocumentDbStorage storage)
         {
             this.storage = storage;
             checkInterval = storage.Options.QueuePollInterval;
+            spDeleteDocumentIfExistsUri = UriFactory.CreateStoredProcedureUri(storage.Options.DatabaseName, storage.Options.CollectionName, "deleteDocumentIfExists");
         }
 
         public IFetchedJob Dequeue(string[] queues, CancellationToken cancellationToken)
@@ -43,8 +45,11 @@ namespace Hangfire.AzureDocumentDB.Queue
 
                         if (data != null)
                         {
-                            storage.Client.DeleteDocumentWithRetriesAsync(data.SelfLink).GetAwaiter().GetResult();
-                            return new FetchedJob(storage, data);
+                            StoredProcedureResponse<bool> result = storage.Client.ExecuteStoredProcedureAsync<bool>(spDeleteDocumentIfExistsUri, data.Id).GetAwaiter().GetResult();
+                            if (result.Response)
+                            {
+                                return new FetchedJob(storage, data);
+                            }
                         }
                     }
                 }

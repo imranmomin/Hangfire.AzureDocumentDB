@@ -131,6 +131,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="StoredProcedure\deleteDocumentIfExists.js" />
     <EmbeddedResource Include="StoredProcedure\deleteExpiredDocuments.js" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
