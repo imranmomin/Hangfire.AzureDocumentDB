@@ -30,17 +30,8 @@ namespace Hangfire.AzureDocumentDB
             spDeleteExpiredDocumentsUri = UriFactory.CreateStoredProcedureUri(storage.Options.DatabaseName, storage.Options.CollectionName, "deleteExpiredDocuments");
         }
 
-        readonly Func<DateTime, int> epoch = date =>
-        {
-            if (date.Equals(DateTime.MinValue)) return int.MinValue;
-            DateTime epochDateTime = new DateTime(1970, 1, 1);
-            TimeSpan epochTimeSpan = date - epochDateTime;
-            return (int)epochTimeSpan.TotalSeconds;
-        };
-
         public void Execute(CancellationToken cancellationToken)
         {
-            int epochDate = epoch(DateTime.UtcNow);
             foreach (string document in documents)
             {
                 logger.Debug($"Removing outdated records from the '{document}' document.");
@@ -48,7 +39,7 @@ namespace Hangfire.AzureDocumentDB
 
                 using (new AzureDocumentDbDistributedLock(DISTRIBUTED_LOCK_KEY, defaultLockTimeout, storage))
                 {
-                    StoredProcedureResponse<int> result = storage.Client.ExecuteStoredProcedureAsync<int>(spDeleteExpiredDocumentsUri, type, epochDate).GetAwaiter().GetResult();
+                    StoredProcedureResponse<int> result = storage.Client.ExecuteStoredProcedureAsync<int>(spDeleteExpiredDocumentsUri, type).GetAwaiter().GetResult();
                     logger.Trace($"Outdated records removed {result.Response} records from the '{document}' document.");
                 }
 
