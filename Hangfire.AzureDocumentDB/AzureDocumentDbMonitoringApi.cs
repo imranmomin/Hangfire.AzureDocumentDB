@@ -17,10 +17,7 @@ namespace Hangfire.AzureDocumentDB
         private readonly AzureDocumentDbStorage storage;
         private readonly FeedOptions queryOptions = new FeedOptions { MaxItemCount = -1 };
 
-        public AzureDocumentDbMonitoringApi(AzureDocumentDbStorage storage)
-        {
-            this.storage = storage;
-        }
+        public AzureDocumentDbMonitoringApi(AzureDocumentDbStorage storage) => this.storage = storage;
 
         public IList<QueueWithTopEnqueuedJobsDto> Queues()
         {
@@ -60,8 +57,7 @@ namespace Hangfire.AzureDocumentDB
         public JobDetailsDto JobDetails(string jobId)
         {
             if (string.IsNullOrEmpty(jobId)) throw new ArgumentNullException(nameof(jobId));
-            
-            // TODO: move to stored procedure
+
             Entities.Job job = storage.Client.CreateDocumentQuery<Entities.Job>(storage.CollectionUri, queryOptions)
                 .Where(j => j.Id == jobId)
                 .AsEnumerable()
@@ -98,7 +94,6 @@ namespace Hangfire.AzureDocumentDB
 
         public StatisticsDto GetStatistics()
         {
-            // TODO: move to stored procedure
             Dictionary<string, long> results = new Dictionary<string, long>();
 
             // get counts of jobs groupby on state
@@ -115,8 +110,6 @@ namespace Hangfire.AzureDocumentDB
             // get counts of servers
             long servers = storage.Client.CreateDocumentQuery<Entities.Server>(storage.CollectionUri, queryOptions)
                 .Where(s => s.DocumentType == DocumentTypes.Server)
-                .Select(s => 1)
-                .AsEnumerable()
                 .LongCount();
             results.Add("Servers", servers);
 
@@ -132,23 +125,21 @@ namespace Hangfire.AzureDocumentDB
             long count = 0;
             count += storage.Client.CreateDocumentQuery<Set>(storage.CollectionUri, queryOptions)
                 .Where(s => s.Key == "recurring-jobs" && s.DocumentType == DocumentTypes.Set)
-                .Select(s => 1)
-                .AsEnumerable()
                 .LongCount();
 
             results.Add("recurring-jobs", count);
 
-            Func<string, long> getValueOrDefault = (key) => results.Where(r => r.Key == key).Select(r => r.Value).SingleOrDefault();
+            long GetValueOrDefault(string key) => results.Where(r => r.Key == key).Select(r => r.Value).SingleOrDefault();
             return new StatisticsDto
             {
-                Enqueued = getValueOrDefault("Enqueued"),
-                Failed = getValueOrDefault("Failed"),
-                Processing = getValueOrDefault("Processing"),
-                Scheduled = getValueOrDefault("Scheduled"),
-                Succeeded = getValueOrDefault("stats:succeeded"),
-                Deleted = getValueOrDefault("stats:deleted"),
-                Recurring = getValueOrDefault("recurring-jobs"),
-                Servers = getValueOrDefault("Servers"),
+                Enqueued = GetValueOrDefault("Enqueued"),
+                Failed = GetValueOrDefault("Failed"),
+                Processing = GetValueOrDefault("Processing"),
+                Scheduled = GetValueOrDefault("Scheduled"),
+                Succeeded = GetValueOrDefault("stats:succeeded"),
+                Deleted = GetValueOrDefault("stats:deleted"),
+                Recurring = GetValueOrDefault("recurring-jobs"),
+                Servers = GetValueOrDefault("Servers"),
                 Queues = storage.Options.Queues.LongLength
             };
         }
@@ -249,7 +240,7 @@ namespace Hangfire.AzureDocumentDB
             filterJobs.ForEach(job =>
             {
                 State state = states.SingleOrDefault(s => s.Id == job.StateId);
-               
+
                 InvocationData invocationData = job.InvocationData;
                 invocationData.Arguments = job.Arguments;
 
@@ -264,7 +255,6 @@ namespace Hangfire.AzureDocumentDB
         {
             if (string.IsNullOrEmpty(queue)) throw new ArgumentNullException(nameof(queue));
 
-            // TODO: move to stored procedure
             List<KeyValuePair<string, T>> jobs = new List<KeyValuePair<string, T>>();
 
             List<Entities.Queue> queues = storage.Client.CreateDocumentQuery<Entities.Queue>(storage.CollectionUri, queryOptions)
@@ -322,8 +312,6 @@ namespace Hangfire.AzureDocumentDB
         {
             return storage.Client.CreateDocumentQuery<Entities.Job>(storage.CollectionUri, queryOptions)
                 .Where(j => j.DocumentType == DocumentTypes.Job && j.StateName == state)
-                .Select(s => 1)
-                .AsEnumerable()
                 .LongCount();
         }
 

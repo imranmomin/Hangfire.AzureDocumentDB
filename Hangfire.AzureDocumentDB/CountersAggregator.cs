@@ -3,7 +3,7 @@ using System.Net;
 using System.Linq;
 using System.Threading;
 using System.Collections.Generic;
-
+using System.Threading.Tasks;
 using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
 
@@ -27,15 +27,12 @@ namespace Hangfire.AzureDocumentDB
 
         public CountersAggregator(AzureDocumentDbStorage storage)
         {
-            if (storage == null) throw new ArgumentNullException(nameof(storage));
-
-            this.storage = storage;
+            this.storage = storage ?? throw new ArgumentNullException(nameof(storage));
             checkInterval = storage.Options.CountersAggregateInterval;
         }
 
         public void Execute(CancellationToken cancellationToken)
         {
-            // TODO: move to stored procedure
             logger.Debug("Aggregating records in 'Counter' table.");
 
             using (new AzureDocumentDbDistributedLock(DISTRIBUTED_LOCK_KEY, defaultLockTimeout, storage))
@@ -76,12 +73,26 @@ namespace Hangfire.AzureDocumentDB
                             aggregated.ExpireOn = data.Item2;
                         }
 
-                        ResourceResponse<Document> response = storage.Client.UpsertDocumentWithRetriesAsync(storage.CollectionUri, aggregated).GetAwaiter().GetResult();
-                        if (response.StatusCode == HttpStatusCode.Created || response.StatusCode == HttpStatusCode.OK)
+                        Task<ResourceResponse<Document>> task = storage.Client.UpsertDocumentWithRetriesAsync(storage.CollectionUri, aggregated);
+
+                        Task continueTask = task.ContinueWith(t =>
                         {
-                            List<Counter> deleteCountersr = rawCounters.Where(c => c.Key == key).ToList();
-                            deleteCountersr.ForEach(counter => storage.Client.DeleteDocumentWithRetriesAsync(counter.SelfLink).GetAwaiter().GetResult());
-                        }
+                            if (t.Result.StatusCode == HttpStatusCode.Created || t.Result.StatusCode == HttpStatusCode.OK)
+                            {
+                                List<Counter> deleteCountersr = rawCounters.Where(c => c.Key == key).ToList();
+                                List<Task> deleteTasks = new List<Task>();
+                                deleteCountersr.ForEach(counter =>
+                                {
+                                    Task deleteTask = storage.Client.DeleteDocumentWithRetriesAsync(counter.SelfLink);
+                                    deleteTasks.Add(deleteTask);
+                                });
+
+                                Task[] final = deleteTasks.ToArray();
+                                Task.WaitAll(final, cancellationToken);
+                            }
+                        }, cancellationToken);
+
+                        continueTask.Wait(cancellationToken);
                     }
                 });
             }

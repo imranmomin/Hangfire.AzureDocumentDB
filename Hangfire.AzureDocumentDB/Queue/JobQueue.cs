@@ -1,18 +1,19 @@
 ﻿using System;
 using System.Linq;
 using System.Threading;
-
+using System.Threading.Tasks;
 using Microsoft.Azure.Documents.Client;
 
 using Hangfire.Storage;
 using Hangfire.AzureDocumentDB.Helper;
+using Microsoft.Azure.Documents;
 
 namespace Hangfire.AzureDocumentDB.Queue
 {
     internal class JobQueue : IPersistentJobQueue
     {
         private readonly AzureDocumentDbStorage storage;
-        private readonly string dequeueLockKey = "locks:job:dequeue";
+        private const string DISTRIBUTED_LOCK_KEY = "locks:job:dequeue";
         private readonly TimeSpan defaultLockTimeout = TimeSpan.FromMinutes(1);
         private readonly TimeSpan checkInterval;
         private readonly object syncLock = new object();
@@ -34,7 +35,7 @@ namespace Hangfire.AzureDocumentDB.Queue
                 cancellationToken.ThrowIfCancellationRequested();
                 lock (syncLock)
                 {
-                    using (new AzureDocumentDbDistributedLock(dequeueLockKey, defaultLockTimeout, storage))
+                    using (new AzureDocumentDbDistributedLock(DISTRIBUTED_LOCK_KEY, defaultLockTimeout, storage))
                     {
                         string queue = queues.ElementAt(index);
 
@@ -45,8 +46,10 @@ namespace Hangfire.AzureDocumentDB.Queue
 
                         if (data != null)
                         {
-                            StoredProcedureResponse<bool> result = storage.Client.ExecuteStoredProcedureAsync<bool>(spDeleteDocumentIfExistsUri, data.Id).GetAwaiter().GetResult();
-                            if (result.Response)
+                            Task<StoredProcedureResponse<bool>> task = storage.Client.ExecuteStoredProcedureAsync<bool>(spDeleteDocumentIfExistsUri, data.Id);
+                            task.Wait(cancellationToken);
+
+                            if (task.Result.Response)
                             {
                                 return new FetchedJob(storage, data);
                             }
@@ -66,7 +69,9 @@ namespace Hangfire.AzureDocumentDB.Queue
                 Name = queue,
                 JobId = jobId
             };
-            storage.Client.CreateDocumentWithRetriesAsync(storage.CollectionUri, data).GetAwaiter().GetResult();
+
+            Task<ResourceResponse<Document>> task = storage.Client.CreateDocumentWithRetriesAsync(storage.CollectionUri, data);
+            task.Wait();
         }
     }
 }

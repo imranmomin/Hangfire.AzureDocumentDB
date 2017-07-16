@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading;
-
+using System.Threading.Tasks;
 using Microsoft.Azure.Documents.Client;
 
 using Hangfire.Server;
@@ -23,9 +23,7 @@ namespace Hangfire.AzureDocumentDB
 
         public ExpirationManager(AzureDocumentDbStorage storage)
         {
-            if (storage == null) throw new ArgumentNullException(nameof(storage));
-
-            this.storage = storage;
+            this.storage = storage ?? throw new ArgumentNullException(nameof(storage));
             checkInterval = storage.Options.ExpirationCheckInterval;
             spDeleteExpiredDocumentsUri = UriFactory.CreateStoredProcedureUri(storage.Options.DatabaseName, storage.Options.CollectionName, "deleteExpiredDocuments");
         }
@@ -39,8 +37,9 @@ namespace Hangfire.AzureDocumentDB
 
                 using (new AzureDocumentDbDistributedLock(DISTRIBUTED_LOCK_KEY, defaultLockTimeout, storage))
                 {
-                    StoredProcedureResponse<int> result = storage.Client.ExecuteStoredProcedureAsync<int>(spDeleteExpiredDocumentsUri, type).GetAwaiter().GetResult();
-                    logger.Trace($"Outdated records removed {result.Response} records from the '{document}' document.");
+                    Task<StoredProcedureResponse<int>> procedureTask = storage.Client.ExecuteStoredProcedureAsync<int>(spDeleteExpiredDocumentsUri, type);
+                    Task task =  procedureTask.ContinueWith(t => logger.Trace($"Outdated records removed {t.Result.Response} records from the '{document}' document."), cancellationToken);
+                    task.Wait(cancellationToken);
                 }
 
                 cancellationToken.WaitHandle.WaitOne(checkInterval);

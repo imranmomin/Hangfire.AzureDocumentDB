@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using System.Collections.Generic;
+using Hangfire.AzureDocumentDB.Entities;
 
 namespace Hangfire.AzureDocumentDB.Queue
 {
@@ -19,20 +20,17 @@ namespace Hangfire.AzureDocumentDB.Queue
         public int GetEnqueuedCount(string queue)
         {
             return storage.Client.CreateDocumentQuery<Entities.Queue>(storage.CollectionUri)
-                .Where(q => q.Name == queue && q.DocumentType == Entities.DocumentTypes.Queue)
-                .AsEnumerable()
-                .Select(q => 1)
-                .Count();
+                .Count(q => q.Name == queue && q.DocumentType == DocumentTypes.Queue);
         }
 
         public IEnumerable<string> GetEnqueuedJobIds(string queue, int from, int perPage)
         {
             return storage.Client.CreateDocumentQuery<Entities.Queue>(storage.CollectionUri)
-                 .Where(q => q.Name == queue && q.DocumentType == Entities.DocumentTypes.Queue)
-                 .AsEnumerable()
-                 .Skip(from).Take(perPage)
-                 .Select(c => c.JobId)
-                 .ToList();
+                .Where(q => q.Name == queue && q.DocumentType == DocumentTypes.Queue)
+                .Select(c => c.JobId)
+                .AsEnumerable()
+                .Skip(from).Take(perPage)
+                .ToList();
         }
 
         public IEnumerable<string> GetFetchedJobIds(string queue, int from, int perPage) => GetEnqueuedJobIds(queue, from, perPage);

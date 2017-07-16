@@ -42,7 +42,7 @@ namespace Hangfire.AzureDocumentDB.Helper
                 TimeSpan sleepTime;
                 try
                 {
-                    return await function();
+                    return await function().ConfigureAwait(false);
                 }
                 catch (DocumentClientException documentException)
                 {

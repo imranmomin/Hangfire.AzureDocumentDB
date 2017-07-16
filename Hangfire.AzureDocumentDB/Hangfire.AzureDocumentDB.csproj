@@ -93,6 +93,7 @@
     <Compile Include="Entities\State.cs" />
     <Compile Include="ExpirationManager.cs" />
     <Compile Include="Helper\AzureDocumentDBHelper.cs" />
+    <Compile Include="Helper\TimeHelper.cs" />
     <Compile Include="Json\DocumentContractResolver.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Queue\Entities\FetchedJob.cs" />
@@ -133,6 +134,24 @@
   <ItemGroup>
     <EmbeddedResource Include="StoredProcedure\deleteDocumentIfExists.js" />
     <EmbeddedResource Include="StoredProcedure\deleteExpiredDocuments.js" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="StoredProcedure\addToSet.js" />
+    <EmbeddedResource Include="StoredProcedure\expireJob.js" />
+    <EmbeddedResource Include="StoredProcedure\persistJob.js" />
+    <EmbeddedResource Include="StoredProcedure\trimList.js" />
+    <EmbeddedResource Include="StoredProcedure\removeFromList.js" />
+    <EmbeddedResource Include="StoredProcedure\removeFromSet.js" />
+    <EmbeddedResource Include="StoredProcedure\removeHash.js" />
+    <EmbeddedResource Include="StoredProcedure\setJobState.js" />
+    <EmbeddedResource Include="StoredProcedure\setRangeHash.js" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="StoredProcedure\announceServer.js" />
+    <EmbeddedResource Include="StoredProcedure\heartbeatServer.js" />
+    <EmbeddedResource Include="StoredProcedure\removedTimedOutServer.js" />
+    <EmbeddedResource Include="StoredProcedure\removeServer.js" />
+    <EmbeddedResource Include="StoredProcedure\setJobParameter.js" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

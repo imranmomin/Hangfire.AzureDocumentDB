@@ -9,9 +9,10 @@ function deleteDocumentIfExists(id) {
     var response = context.getResponse();
 
     var result = collection.filter(function (doc) { return doc.id === id; }, function (err, documents) {
-        if (err) throw err;
-        if (documents.length > 1) throw new ("Found more than one document for id :" + id);
         response.setBody(false);
+        if (err) throw err;
+
+        if (documents.length > 1) throw new ("Found more than one document for id :" + id);
 
         if (documents.length === 1) {
             var self = documents[0]._self;

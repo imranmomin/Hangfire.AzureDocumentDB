@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-
+using System.IO;
+using System.Linq;
+using System.Text;
 using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
 
@@ -56,8 +58,7 @@ namespace Hangfire.AzureDocumentDB
         /// <exception cref="ArgumentNullException"><paramref name="options"/> argument is null.</exception>
         private AzureDocumentDbStorage(AzureDocumentDbStorageOptions options)
         {
-            if (options == null) throw new ArgumentNullException(nameof(options));
-            Options = options;
+            Options = options ?? throw new ArgumentNullException(nameof(options));
 
             ConnectionPolicy connectionPolicy = ConnectionPolicy.Default;
             connectionPolicy.RequestTimeout = options.RequestTimeout;
@@ -130,10 +131,36 @@ namespace Hangfire.AzureDocumentDB
             logger.Info($"Creating database : {Options.DatabaseName}");
             Client.CreateDatabaseIfNotExistsAsync(new Database { Id = Options.DatabaseName }).GetAwaiter().GetResult();
 
+            // create document collection
             logger.Info($"Creating document collection : {Options.CollectionName}");
             Uri databaseUri = UriFactory.CreateDatabaseUri(Options.DatabaseName);
             Client.CreateDocumentCollectionIfNotExistsAsync(databaseUri, new DocumentCollection { Id = Options.CollectionName }).GetAwaiter().GetResult();
             CollectionUri = UriFactory.CreateDocumentCollectionUri(Options.DatabaseName, Options.CollectionName);
+
+            // create stored procedures 
+            System.Reflection.Assembly assembly = System.Reflection.Assembly.GetExecutingAssembly();
+            string[] storedProcedureFiles = assembly.GetManifestResourceNames().Where(n => n.EndsWith(".js")).ToArray();
+            foreach (string storedProcedureFile in storedProcedureFiles)
+            {
+                logger.Info($"Creating database : {storedProcedureFile}");
+                Stream stream = assembly.GetManifestResourceStream(storedProcedureFile);
+                using (MemoryStream memoryStream = new MemoryStream())
+                {
+                    stream?.CopyTo(memoryStream);
+                    string body = Encoding.UTF8.GetString(memoryStream.ToArray());
+
+                    // create stored procedure
+                    StoredProcedure sp = new StoredProcedure
+                    {
+                        Body = body,
+                        Id = Path.GetFileNameWithoutExtension(storedProcedureFile)
+                             ?.Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries)
+                             .Last()
+                    };
+                    Client.UpsertStoredProcedureAsync(CollectionUri, sp);
+                }
+                stream?.Close();
+            }
         }
 
         private static AzureDocumentDbStorageOptions Transform(string url, string authSecret, string database, string collection, AzureDocumentDbStorageOptions options)
@@ -147,6 +174,5 @@ namespace Hangfire.AzureDocumentDB
 
             return options;
         }
-
     }
 }
