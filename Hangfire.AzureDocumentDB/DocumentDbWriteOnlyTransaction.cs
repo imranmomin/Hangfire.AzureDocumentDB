@@ -1,24 +1,24 @@
 ﻿using System;
 using System.Linq;
-using System.Collections.Generic;
 using System.Threading.Tasks;
-using Microsoft.Azure.Documents.Client;
+using System.Collections.Generic;
 
 using Hangfire.States;
 using Hangfire.Storage;
-using Hangfire.AzureDocumentDB.Queue;
-using Hangfire.AzureDocumentDB.Helper;
-using Hangfire.AzureDocumentDB.Entities;
+using Hangfire.Azure.Queue;
+using Hangfire.Azure.Documents;
 using Microsoft.Azure.Documents;
+using Hangfire.Azure.Documents.Helper;
+using Microsoft.Azure.Documents.Client;
 
-namespace Hangfire.AzureDocumentDB
+namespace Hangfire.Azure
 {
-    internal class AzureDocumentDbWriteOnlyTransaction : IWriteOnlyTransaction
+    internal class DocumentDbWriteOnlyTransaction : IWriteOnlyTransaction
     {
-        private readonly AzureDocumentDbConnection connection;
+        private readonly DocumentDbConnection connection;
         private readonly List<Action> commands = new List<Action>();
 
-        public AzureDocumentDbWriteOnlyTransaction(AzureDocumentDbConnection connection) => this.connection = connection;
+        public DocumentDbWriteOnlyTransaction(DocumentDbConnection connection) => this.connection = connection;
         private void QueueCommand(Action command) => commands.Add(command);
         public void Commit() => commands.ForEach(command => command());
         public void Dispose() { }

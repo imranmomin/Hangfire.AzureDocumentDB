@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Globalization;
 
-namespace Hangfire.AzureDocumentDB.Helper
+namespace Hangfire.Azure.Documents.Helper
 {
     internal static class TimeHelper
     {
@@ -20,5 +20,4 @@ namespace Hangfire.AzureDocumentDB.Helper
                 : s;
         }
     }
-
 }

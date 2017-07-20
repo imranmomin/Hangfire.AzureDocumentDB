@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Azure.Documents.Client;
 
 using Hangfire.Server;
 using Hangfire.Logging;
-using Hangfire.AzureDocumentDB.Entities;
+using Hangfire.Azure.Documents;
+using Microsoft.Azure.Documents.Client;
 
-namespace Hangfire.AzureDocumentDB
+namespace Hangfire.Azure
 {
 #pragma warning disable 618
     internal class ExpirationManager : IServerComponent
@@ -18,10 +18,10 @@ namespace Hangfire.AzureDocumentDB
         private static readonly TimeSpan defaultLockTimeout = TimeSpan.FromMinutes(5);
         private static readonly string[] documents = { "locks", "jobs", "lists", "sets", "hashes", "counters" };
         private readonly TimeSpan checkInterval;
-        private readonly AzureDocumentDbStorage storage;
+        private readonly DocumentDbStorage storage;
         private readonly Uri spDeleteExpiredDocumentsUri;
 
-        public ExpirationManager(AzureDocumentDbStorage storage)
+        public ExpirationManager(DocumentDbStorage storage)
         {
             this.storage = storage ?? throw new ArgumentNullException(nameof(storage));
             checkInterval = storage.Options.ExpirationCheckInterval;
@@ -35,10 +35,10 @@ namespace Hangfire.AzureDocumentDB
                 logger.Debug($"Removing outdated records from the '{document}' document.");
                 DocumentTypes type = document.ToDocumentType();
 
-                using (new AzureDocumentDbDistributedLock(DISTRIBUTED_LOCK_KEY, defaultLockTimeout, storage))
+                using (new DocumentDbDistributedLock(DISTRIBUTED_LOCK_KEY, defaultLockTimeout, storage))
                 {
                     Task<StoredProcedureResponse<int>> procedureTask = storage.Client.ExecuteStoredProcedureAsync<int>(spDeleteExpiredDocumentsUri, type);
-                    Task task =  procedureTask.ContinueWith(t => logger.Trace($"Outdated records removed {t.Result.Response} records from the '{document}' document."), cancellationToken);
+                    Task task = procedureTask.ContinueWith(t => logger.Trace($"Outdated records removed {t.Result.Response} records from the '{document}' document."), TaskContinuationOptions.OnlyOnRanToCompletion);
                     task.Wait(cancellationToken);
                 }
 

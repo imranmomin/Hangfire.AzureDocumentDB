@@ -3,20 +3,20 @@ using System.Net;
 using System.Linq;
 using System.Threading.Tasks;
 
+using Hangfire.Azure.Documents;
 using Microsoft.Azure.Documents;
-using Hangfire.AzureDocumentDB.Helper;
+using Hangfire.Azure.Documents.Helper;
 using Microsoft.Azure.Documents.Client;
-using Hangfire.AzureDocumentDB.Entities;
 
-namespace Hangfire.AzureDocumentDB
+namespace Hangfire.Azure
 {
-    internal class AzureDocumentDbDistributedLock : IDisposable
+    internal class DocumentDbDistributedLock : IDisposable
     {
-        private readonly AzureDocumentDbStorage storage;
+        private readonly DocumentDbStorage storage;
         private string resourceId;
         private readonly object syncLock = new object();
 
-        public AzureDocumentDbDistributedLock(string resource, TimeSpan timeout, AzureDocumentDbStorage storage)
+        public DocumentDbDistributedLock(string resource, TimeSpan timeout, DocumentDbStorage storage)
         {
             this.storage = storage;
             Acquire(resource, timeout);
@@ -49,19 +49,18 @@ namespace Hangfire.AzureDocumentDB
                     Task<ResourceResponse<Document>> task = storage.Client.CreateDocumentWithRetriesAsync(storage.CollectionUri, @lock);
                     Task continueTask = task.ContinueWith(t =>
                     {
-                        ResourceResponse<Document> response = t.Result;
-                        if (response.StatusCode == HttpStatusCode.Created)
+                        if (t.Result.StatusCode == HttpStatusCode.Created)
                         {
                             resourceId = @lock.Id;
                         }
-                    });
+                    }, TaskContinuationOptions.OnlyOnRanToCompletion);
                     continueTask.Wait();
                 }
 
                 // check the timeout
                 if (acquireStart.ElapsedMilliseconds > timeout.TotalMilliseconds)
                 {
-                    throw new AzureDocumentDbDistributedLockException($"Could not place a lock on the resource '{name}': Lock timeout.");
+                    throw new DocumentDbDistributedLockException($"Could not place a lock on the resource '{name}': Lock timeout.");
                 }
 
                 // sleep for 1000 millisecond

@@ -2,8 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-// ReSharper disable UnusedMember.Global
-namespace Hangfire.AzureDocumentDB.Queue
+namespace Hangfire.Azure.Queue
 {
     internal sealed class PersistentJobQueueProviderCollection : IEnumerable<IPersistentJobQueueProvider>
     {

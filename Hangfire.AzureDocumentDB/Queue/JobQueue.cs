@@ -5,14 +5,14 @@ using System.Threading.Tasks;
 using Microsoft.Azure.Documents.Client;
 
 using Hangfire.Storage;
-using Hangfire.AzureDocumentDB.Helper;
 using Microsoft.Azure.Documents;
+using Hangfire.Azure.Documents.Helper;
 
-namespace Hangfire.AzureDocumentDB.Queue
+namespace Hangfire.Azure.Queue
 {
     internal class JobQueue : IPersistentJobQueue
     {
-        private readonly AzureDocumentDbStorage storage;
+        private readonly DocumentDbStorage storage;
         private const string DISTRIBUTED_LOCK_KEY = "locks:job:dequeue";
         private readonly TimeSpan defaultLockTimeout = TimeSpan.FromMinutes(1);
         private readonly TimeSpan checkInterval;
@@ -20,7 +20,7 @@ namespace Hangfire.AzureDocumentDB.Queue
         private readonly FeedOptions queryOptions = new FeedOptions { MaxItemCount = 1 };
         private readonly Uri spDeleteDocumentIfExistsUri;
 
-        public JobQueue(AzureDocumentDbStorage storage)
+        public JobQueue(DocumentDbStorage storage)
         {
             this.storage = storage;
             checkInterval = storage.Options.QueuePollInterval;
@@ -35,12 +35,12 @@ namespace Hangfire.AzureDocumentDB.Queue
                 cancellationToken.ThrowIfCancellationRequested();
                 lock (syncLock)
                 {
-                    using (new AzureDocumentDbDistributedLock(DISTRIBUTED_LOCK_KEY, defaultLockTimeout, storage))
+                    using (new DocumentDbDistributedLock(DISTRIBUTED_LOCK_KEY, defaultLockTimeout, storage))
                     {
                         string queue = queues.ElementAt(index);
 
-                        Entities.Queue data = storage.Client.CreateDocumentQuery<Entities.Queue>(storage.CollectionUri, queryOptions)
-                            .Where(q => q.Name == queue && q.DocumentType == Entities.DocumentTypes.Queue)
+                        Documents.Queue data = storage.Client.CreateDocumentQuery<Documents.Queue>(storage.CollectionUri, queryOptions)
+                            .Where(q => q.Name == queue && q.DocumentType == Documents.DocumentTypes.Queue)
                             .AsEnumerable()
                             .FirstOrDefault();
 
@@ -64,7 +64,7 @@ namespace Hangfire.AzureDocumentDB.Queue
 
         public void Enqueue(string queue, string jobId)
         {
-            Entities.Queue data = new Entities.Queue
+            Documents.Queue data = new Documents.Queue
             {
                 Name = queue,
                 JobId = jobId

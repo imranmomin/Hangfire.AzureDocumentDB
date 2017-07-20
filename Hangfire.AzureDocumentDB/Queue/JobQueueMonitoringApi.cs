@@ -1,15 +1,16 @@
 ﻿using System.Linq;
 using System.Collections.Generic;
-using Hangfire.AzureDocumentDB.Entities;
 
-namespace Hangfire.AzureDocumentDB.Queue
+using Hangfire.Azure.Documents;
+
+namespace Hangfire.Azure.Queue
 {
     internal class JobQueueMonitoringApi : IPersistentJobQueueMonitoringApi
     {
-        private readonly AzureDocumentDbStorage storage;
+        private readonly DocumentDbStorage storage;
         private readonly IEnumerable<string> queues;
 
-        public JobQueueMonitoringApi(AzureDocumentDbStorage storage)
+        public JobQueueMonitoringApi(DocumentDbStorage storage)
         {
             this.storage = storage;
             queues = storage.Options.Queues;
@@ -19,13 +20,13 @@ namespace Hangfire.AzureDocumentDB.Queue
 
         public int GetEnqueuedCount(string queue)
         {
-            return storage.Client.CreateDocumentQuery<Entities.Queue>(storage.CollectionUri)
+            return storage.Client.CreateDocumentQuery<Documents.Queue>(storage.CollectionUri)
                 .Count(q => q.Name == queue && q.DocumentType == DocumentTypes.Queue);
         }
 
         public IEnumerable<string> GetEnqueuedJobIds(string queue, int from, int perPage)
         {
-            return storage.Client.CreateDocumentQuery<Entities.Queue>(storage.CollectionUri)
+            return storage.Client.CreateDocumentQuery<Documents.Queue>(storage.CollectionUri)
                 .Where(q => q.Name == queue && q.DocumentType == DocumentTypes.Queue)
                 .Select(c => c.JobId)
                 .AsEnumerable()

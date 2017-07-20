@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
 
-namespace Hangfire.AzureDocumentDB.Helper
+namespace Hangfire.Azure.Documents.Helper
 {
     // ReSharper disable once InconsistentNaming
     internal static class AzureDocumentDBHelper
@@ -70,7 +70,7 @@ namespace Hangfire.AzureDocumentDB.Helper
                 await Task.Delay(sleepTime);
             }
 
-            throw new AzureDocumentDbDistributedRetryException("Failed to execute the task after 3 retries. Please check the rate limits on the collection/database");
+            throw new DocumentDbRetryException("Failed to execute the task after 3 retries. Please check the rate limits on the collection/database");
         }
 
     }
