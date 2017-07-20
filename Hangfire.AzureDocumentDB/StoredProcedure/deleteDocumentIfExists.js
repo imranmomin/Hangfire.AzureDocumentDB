@@ -1,24 +1,27 @@
 ﻿/**
  * Deletes the document if exists
- * @param {string} id - the document id
+ * @param {string} ids - the document ids
  * @returns {boolean} true if deleted; else false 
  */
-function deleteDocumentIfExists(id) {
+function deleteDocumentIfExists(ids) {
     var context = getContext();
     var collection = context.getCollection();
     var response = context.getResponse();
 
-    var result = collection.filter(function (doc) { return doc.id === id; }, function (err, documents) {
+    if (!Array.isArray(ids)) {
+        ids = [ids];
+    }
+
+    var result = collection.filter(function (doc) { return ids.indexOf(doc.id) > -1; }, function (err, documents) {
         response.setBody(false);
         if (err) throw err;
 
-        if (documents.length > 1) throw new ("Found more than one document for id :" + id);
-
-        if (documents.length === 1) {
-            var self = documents[0]._self;
+        for (var index = 0; index < documents.length; index++) {
+            var self = documents[index]._self;
             collection.deleteDocument(self);
-            response.setBody(true);
         }
+
+        response.setBody(true);
     });
 
     if (!result.isAccepted) throw new ("The call was not accepted");
