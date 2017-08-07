@@ -82,7 +82,7 @@ namespace Hangfire.Azure
                             if (t.Result.StatusCode == HttpStatusCode.Created || t.Result.StatusCode == HttpStatusCode.OK)
                             {
                                 List<string> deleteCountersr = rawCounters.Where(c => c.Key == key).Select(c => c.Id).ToList();
-                                Task<StoredProcedureResponse<int>> procedureTask = storage.Client.ExecuteStoredProcedureAsync<int>(spDeleteDocumentIfExistsUri, deleteCountersr);
+                                Task<StoredProcedureResponse<bool>> procedureTask = storage.Client.ExecuteStoredProcedureAsync<bool>(spDeleteDocumentIfExistsUri, deleteCountersr);
                                 procedureTask.Wait(cancellationToken);
                             }
                         }, cancellationToken);
