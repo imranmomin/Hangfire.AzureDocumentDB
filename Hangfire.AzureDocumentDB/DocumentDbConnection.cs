@@ -188,11 +188,21 @@ namespace Hangfire.Azure
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
 
-            DateTime? expireOn = Storage.Client.CreateDocumentQuery<Set>(Storage.CollectionUri, queryOptions)
-                .Where(s => s.Key == key && s.DocumentType == DocumentTypes.Set)
-                .Min(s => s.ExpireOn);
+            SqlQuerySpec sql = new SqlQuerySpec
+            {
+                QueryText = "SELECT VALUE MIN(c['expire_on']) FROM c WHERE c.key = @key AND c.type = @type",
+                Parameters = new SqlParameterCollection
+                {
+                    new SqlParameter("@key", key),
+                    new SqlParameter("@type", DocumentTypes.Set),
+                }
+            };
 
-            return expireOn.HasValue ? expireOn.Value - DateTime.UtcNow : TimeSpan.FromSeconds(-1);
+            int? expireOn = Storage.Client.CreateDocumentQuery<int?>(Storage.CollectionUri, sql)
+                .AsEnumerable()
+                .FirstOrDefault();
+
+            return expireOn.HasValue ? expireOn.Value.ToDateTime() - DateTime.UtcNow : TimeSpan.FromSeconds(-1);
         }
 
         public override List<string> GetRangeFromSet(string key, int startingFrom, int endingAt)
@@ -211,9 +221,19 @@ namespace Hangfire.Azure
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
 
-            return Storage.Client.CreateDocumentQuery<Counter>(Storage.CollectionUri, queryOptions)
-                .Where(c => c.Key == key && c.DocumentType == DocumentTypes.Counter)
-                .Sum(c => c.Value);
+            SqlQuerySpec sql = new SqlQuerySpec
+            {
+                QueryText = "SELECT VALUE SUM(c['value']) FROM c WHERE c.key = @key AND c.type = @type",
+                Parameters = new SqlParameterCollection
+                {
+                    new SqlParameter("@key", key),
+                    new SqlParameter("@type", DocumentTypes.Counter),
+                }
+            };
+
+            return Storage.Client.CreateDocumentQuery<long>(Storage.CollectionUri, sql)
+                .AsEnumerable()
+                .FirstOrDefault();
         }
 
         public override long GetSetCount(string key)
@@ -403,11 +423,21 @@ namespace Hangfire.Azure
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
 
-            DateTime? expireOn = Storage.Client.CreateDocumentQuery<Hash>(Storage.CollectionUri, queryOptions)
-                .Where(h => h.Key == key && h.DocumentType == DocumentTypes.Hash)
-                .Min(h => h.ExpireOn);
+            SqlQuerySpec sql = new SqlQuerySpec
+            {
+                QueryText = "SELECT VALUE MIN(c['expire_on']) FROM c WHERE c.key = @key AND c.type = @type",
+                Parameters = new SqlParameterCollection
+                {
+                    new SqlParameter("@key", key),
+                    new SqlParameter("@type", DocumentTypes.Hash),
+                }
+            };
 
-            return expireOn.HasValue ? expireOn.Value - DateTime.UtcNow : TimeSpan.FromSeconds(-1);
+            int? expireOn = Storage.Client.CreateDocumentQuery<int?>(Storage.CollectionUri, sql)
+                .AsEnumerable()
+                .FirstOrDefault();
+
+            return expireOn.HasValue ? expireOn.Value.ToDateTime() - DateTime.UtcNow : TimeSpan.FromSeconds(-1);
         }
 
         #endregion
@@ -442,11 +472,22 @@ namespace Hangfire.Azure
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
 
-            DateTime? expireOn = Storage.Client.CreateDocumentQuery<List>(Storage.CollectionUri, queryOptions)
-                .Where(l => l.Key == key && l.DocumentType == DocumentTypes.List)
-                .Min(l => l.ExpireOn);
 
-            return expireOn.HasValue ? expireOn.Value - DateTime.UtcNow : TimeSpan.FromSeconds(-1);
+            SqlQuerySpec sql = new SqlQuerySpec
+            {
+                QueryText = "SELECT VALUE MIN(c['expire_on']) FROM c WHERE c.key = @key AND c.type = @type",
+                Parameters = new SqlParameterCollection
+                {
+                    new SqlParameter("@key", key),
+                    new SqlParameter("@type", DocumentTypes.List),
+                }
+            };
+
+            int? expireOn = Storage.Client.CreateDocumentQuery<int?>(Storage.CollectionUri, sql)
+                .AsEnumerable()
+                .FirstOrDefault();
+
+            return expireOn.HasValue ? expireOn.Value.ToDateTime() - DateTime.UtcNow : TimeSpan.FromSeconds(-1);
         }
 
         public override long GetListCount(string key)
