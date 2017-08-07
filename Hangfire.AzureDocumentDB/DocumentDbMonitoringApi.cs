@@ -6,6 +6,7 @@ using Hangfire.Common;
 using Hangfire.Storage;
 using Hangfire.Azure.Queue;
 using Hangfire.Azure.Documents;
+using Microsoft.Azure.Documents;
 using Hangfire.Storage.Monitoring;
 using Microsoft.Azure.Documents.Client;
 
@@ -107,9 +108,19 @@ namespace Hangfire.Azure
             results = results.Concat(states).ToDictionary(k => k.Key, v => v.Value);
 
             // get counts of servers
-            long servers = storage.Client.CreateDocumentQuery<Documents.Server>(storage.CollectionUri, queryOptions)
-                .Where(s => s.DocumentType == DocumentTypes.Server)
-                .LongCount();
+            SqlQuerySpec sql = new SqlQuerySpec
+            {
+                QueryText = "SELECT VALUE COUNT(1) FROM c WHERE c.type = @type",
+                Parameters = new SqlParameterCollection
+                {
+                    new SqlParameter("@type", DocumentTypes.Server),
+                }
+            };
+
+            long servers = storage.Client.CreateDocumentQuery<long>(storage.CollectionUri, sql)
+                .AsEnumerable()
+                .FirstOrDefault();
+
             results.Add("Servers", servers);
 
             // get sum of stats:succeeded counters  raw / aggregate
@@ -121,10 +132,19 @@ namespace Hangfire.Azure
 
             results = results.Concat(counters).ToDictionary(k => k.Key, v => v.Value);
 
-            long count = 0;
-            count += storage.Client.CreateDocumentQuery<Set>(storage.CollectionUri, queryOptions)
-                .Where(s => s.Key == "recurring-jobs" && s.DocumentType == DocumentTypes.Set)
-                .LongCount();
+            sql = new SqlQuerySpec
+            {
+                QueryText = "SELECT VALUE COUNT(1) FROM c WHERE c.key = @key AND c.type = @type",
+                Parameters = new SqlParameterCollection
+                {
+                    new SqlParameter("@key", "recurring-jobs"),
+                    new SqlParameter("@type", DocumentTypes.Set),
+                }
+            };
+
+            long count = storage.Client.CreateDocumentQuery<long>(storage.CollectionUri, sql)
+                .AsEnumerable()
+                .FirstOrDefault();
 
             results.Add("recurring-jobs", count);
 
@@ -309,9 +329,19 @@ namespace Hangfire.Azure
 
         private long GetNumberOfJobsByStateName(string state)
         {
-            return storage.Client.CreateDocumentQuery<Documents.Job>(storage.CollectionUri, queryOptions)
-                .Where(j => j.DocumentType == DocumentTypes.Job && j.StateName == state)
-                .LongCount();
+            SqlQuerySpec sql = new SqlQuerySpec
+            {
+                QueryText = "SELECT VALUE COUNT(1) FROM c WHERE c.state_name = @state AND c.type = @type",
+                Parameters = new SqlParameterCollection
+                {
+                    new SqlParameter("@state", state),
+                    new SqlParameter("@type", DocumentTypes.Job),
+                }
+            };
+
+            return storage.Client.CreateDocumentQuery<long>(storage.CollectionUri, sql)
+                  .AsEnumerable()
+                  .FirstOrDefault();
         }
 
         public IDictionary<DateTime, long> SucceededByDatesCount() => GetDatesTimelineStats("succeeded");

@@ -220,8 +220,19 @@ namespace Hangfire.Azure
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
 
-            return Storage.Client.CreateDocumentQuery<Set>(Storage.CollectionUri, queryOptions)
-                 .LongCount(s => s.Key == key && s.DocumentType == DocumentTypes.Set);
+            SqlQuerySpec sql = new SqlQuerySpec
+            {
+                QueryText = "SELECT VALUE COUNT(1) FROM c WHERE c.key = @key AND c.type = @type",
+                Parameters = new SqlParameterCollection
+                {
+                    new SqlParameter("@key", key),
+                    new SqlParameter("@type", DocumentTypes.Set),
+                }
+            };
+
+            return Storage.Client.CreateDocumentQuery<long>(Storage.CollectionUri, sql)
+                .AsEnumerable()
+                .FirstOrDefault();
         }
 
         public override HashSet<string> GetAllItemsFromSet(string key)
@@ -352,8 +363,19 @@ namespace Hangfire.Azure
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
 
-            return Storage.Client.CreateDocumentQuery<Hash>(Storage.CollectionUri, queryOptions)
-                .LongCount(h => h.Key == key && h.DocumentType == DocumentTypes.Hash);
+            SqlQuerySpec sql = new SqlQuerySpec
+            {
+                QueryText = "SELECT VALUE COUNT(1) FROM c WHERE c.key = @key AND c.type = @type",
+                Parameters = new SqlParameterCollection
+                {
+                    new SqlParameter("@key", key),
+                    new SqlParameter("@type", DocumentTypes.Hash),
+                }
+            };
+
+            return Storage.Client.CreateDocumentQuery<long>(Storage.CollectionUri, sql)
+                .AsEnumerable()
+                .FirstOrDefault();
         }
 
         public override string GetValueFromHash(string key, string name)
@@ -431,8 +453,19 @@ namespace Hangfire.Azure
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
 
-            return Storage.Client.CreateDocumentQuery<List>(Storage.CollectionUri, queryOptions)
-                .LongCount(l => l.Key == key && l.DocumentType == DocumentTypes.List);
+            SqlQuerySpec sql = new SqlQuerySpec
+            {
+                QueryText = "SELECT VALUE COUNT(1) FROM c WHERE c.key = @key AND c.type = @type",
+                Parameters = new SqlParameterCollection
+                {
+                    new SqlParameter("@key", key),
+                    new SqlParameter("@type", DocumentTypes.List),
+                }
+            };
+
+            return Storage.Client.CreateDocumentQuery<long>(Storage.CollectionUri, sql)
+                .AsEnumerable()
+                .FirstOrDefault();
         }
 
         #endregion

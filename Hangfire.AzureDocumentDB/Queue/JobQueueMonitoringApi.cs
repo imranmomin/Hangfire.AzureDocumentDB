@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 
 using Hangfire.Azure.Documents;
+using Microsoft.Azure.Documents;
 
 namespace Hangfire.Azure.Queue
 {
@@ -20,8 +21,19 @@ namespace Hangfire.Azure.Queue
 
         public int GetEnqueuedCount(string queue)
         {
-            return storage.Client.CreateDocumentQuery<Documents.Queue>(storage.CollectionUri)
-                .Count(q => q.Name == queue && q.DocumentType == DocumentTypes.Queue);
+            SqlQuerySpec sql = new SqlQuerySpec
+            {
+                QueryText = "SELECT VALUE COUNT(1) FROM c WHERE c.name = @name AND c.type = @type",
+                Parameters = new SqlParameterCollection
+                {
+                    new SqlParameter("@name", queue),
+                    new SqlParameter("@type", DocumentTypes.Queue)
+                }
+            };
+
+            return storage.Client.CreateDocumentQuery<int>(storage.CollectionUri, sql)
+                .AsEnumerable()
+                .FirstOrDefault();
         }
 
         public IEnumerable<string> GetEnqueuedJobIds(string queue, int from, int perPage)
