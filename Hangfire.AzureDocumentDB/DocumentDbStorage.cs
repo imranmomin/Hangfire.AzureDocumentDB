@@ -13,6 +13,7 @@ using Hangfire.Azure.Queue;
 using Microsoft.Azure.Documents;
 using Hangfire.Azure.Documents.Json;
 using Microsoft.Azure.Documents.Client;
+using System.Reflection;
 
 namespace Hangfire.Azure
 {
@@ -71,7 +72,7 @@ namespace Hangfire.Azure
 
             ConnectionPolicy connectionPolicy = ConnectionPolicy.Default;
             connectionPolicy.RequestTimeout = options.RequestTimeout;
-            Client = new DocumentClient(options.Endpoint, options.AuthSecret, connectionPolicy, serializerSettings: settings);
+            Client = new DocumentClient(options.Endpoint, options.AuthSecret, settings, connectionPolicy);
             Task task = Client.OpenAsync();
             Task continueTask = task.ContinueWith(t => Initialize(), TaskContinuationOptions.OnlyOnRanToCompletion);
             continueTask.Wait();
@@ -145,12 +146,12 @@ namespace Hangfire.Azure
             Task continueTask = collectionTask.ContinueWith(t =>
             {
                 CollectionUri = UriFactory.CreateDocumentCollectionUri(Options.DatabaseName, Options.CollectionName);
-                System.Reflection.Assembly assembly = System.Reflection.Assembly.GetExecutingAssembly();
+                System.Reflection.Assembly assembly = typeof(DocumentDbStorage).GetTypeInfo().Assembly;
                 string[] storedProcedureFiles = assembly.GetManifestResourceNames().Where(n => n.EndsWith(".js")).ToArray();
                 foreach (string storedProcedureFile in storedProcedureFiles)
                 {
                     logger.Info($"Creating database : {storedProcedureFile}");
-                    Stream stream = assembly.GetManifestResourceStream(storedProcedureFile);
+                    using (Stream stream = assembly.GetManifestResourceStream(storedProcedureFile))
                     using (MemoryStream memoryStream = new MemoryStream())
                     {
                         stream?.CopyTo(memoryStream);
@@ -163,7 +164,6 @@ namespace Hangfire.Azure
                         };
                         Client.UpsertStoredProcedureAsync(CollectionUri, sp);
                     }
-                    stream?.Close();
                 }
             }, TaskContinuationOptions.OnlyOnRanToCompletion);
 
