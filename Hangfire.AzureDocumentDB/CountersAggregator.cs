@@ -47,7 +47,7 @@ namespace Hangfire.Azure
                 Dictionary<string, Tuple<int, DateTime?>> counters = rawCounters.GroupBy(c => c.Key)
                     .ToDictionary(k => k.Key, v => new Tuple<int, DateTime?>(v.Sum(c => c.Value), v.Max(c => c.ExpireOn)));
 
-                Array.ForEach(counters.Keys.ToArray(), key =>
+                foreach (var key in counters.Keys)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
@@ -89,7 +89,7 @@ namespace Hangfire.Azure
 
                         continueTask.Wait(cancellationToken);
                     }
-                });
+                }
             }
 
             logger.Trace("Records from the 'Counter' table aggregated.");

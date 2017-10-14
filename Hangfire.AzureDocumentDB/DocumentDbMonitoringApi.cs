@@ -23,7 +23,7 @@ namespace Hangfire.Azure
         {
             List<QueueWithTopEnqueuedJobsDto> queueJobs = new List<QueueWithTopEnqueuedJobsDto>();
 
-            Array.ForEach(storage.Options.Queues, queue =>
+            foreach(var queue in storage.Options.Queues)
             {
                 long enqueueCount = EnqueuedCount(queue);
                 JobList<EnqueuedJobDto> jobs = EnqueuedJobs(queue, 0, 1);
@@ -34,7 +34,7 @@ namespace Hangfire.Azure
                     Name = queue,
                     FirstJobs = jobs
                 });
-            });
+            }
 
             return queueJobs;
         }
@@ -159,7 +159,7 @@ namespace Hangfire.Azure
                 Deleted = GetValueOrDefault("stats:deleted"),
                 Recurring = GetValueOrDefault("recurring-jobs"),
                 Servers = GetValueOrDefault("Servers"),
-                Queues = storage.Options.Queues.LongLength
+                Queues = storage.Options.Queues.Length //TODO: Verify whether the LongLength is really necessary here.
             };
         }
 
