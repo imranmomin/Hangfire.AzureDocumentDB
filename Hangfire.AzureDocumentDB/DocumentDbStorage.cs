@@ -107,7 +107,7 @@ namespace Hangfire.Azure
             logger.Info("Using the following options for Azure DocumentDB job storage:");
             logger.Info($"     DocumentDB Url: {Client.ServiceEndpoint.AbsoluteUri}");
             logger.Info($"     Request Timeout: {Options.RequestTimeout}");
-            logger.Info($"     Counter Agggerate Interval: {Options.CountersAggregateInterval.TotalSeconds} seconds");
+            logger.Info($"     Counter Aggregate Interval: {Options.CountersAggregateInterval.TotalSeconds} seconds");
             logger.Info($"     Queue Poll Interval: {Options.QueuePollInterval.TotalSeconds} seconds");
             logger.Info($"     Expiration Check Interval: {Options.ExpirationCheckInterval.TotalSeconds} seconds");
         }
@@ -116,7 +116,7 @@ namespace Hangfire.Azure
         /// Return the name of the database
         /// </summary>
         /// <returns></returns>
-        public override string ToString() => $"DoucmentDb Database : {Options.DatabaseName}";
+        public override string ToString() => $"DocumentDb Database : {Options.DatabaseName}";
 
         private void Initialize()
         {
@@ -142,7 +142,7 @@ namespace Hangfire.Azure
                 string[] storedProcedureFiles = assembly.GetManifestResourceNames().Where(n => n.EndsWith(".js")).ToArray();
                 foreach (string storedProcedureFile in storedProcedureFiles)
                 {
-                    logger.Info($"Creating storedprocedure : {storedProcedureFile}");
+                    logger.Info($"Creating stored procedure : {storedProcedureFile}");
                     Stream stream = assembly.GetManifestResourceStream(storedProcedureFile);
                     using (MemoryStream memoryStream = new MemoryStream())
                     {

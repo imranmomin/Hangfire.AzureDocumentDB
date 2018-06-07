@@ -13,18 +13,18 @@ namespace Hangfire.Azure
         internal string CollectionName { get; set; }
 
         /// <summary>
-        /// Get or sets the request timemout for DocumentDB client. Default value set to 30 seconds
+        /// Get or sets the request timeout for DocumentDB client. Default value set to 30 seconds
         /// </summary>
         public TimeSpan RequestTimeout { get; set; }
 
         /// <summary>
-        /// Get or set the interval timespan to process expired enteries. Default value 15 minutes
-        /// Expired items under "locks", "jobs", "lists", "sets", "hashs", "counters/aggregrated" will be checked 
+        /// Get or set the interval timespan to process expired entries. Default value 15 minutes
+        /// Expired items under "locks", "jobs", "lists", "sets", "hashs", "counters/aggregated" will be checked 
         /// </summary>
         public TimeSpan ExpirationCheckInterval { get; set; }
 
         /// <summary>
-        /// Get or sets the interval timespan to aggreated the counters. Default value 1 minute
+        /// Get or sets the interval timespan to aggregated the counters. Default value 1 minute
         /// </summary>
         public TimeSpan CountersAggregateInterval { get; set; }
 
@@ -39,9 +39,9 @@ namespace Hangfire.Azure
         public DocumentDbStorageOptions()
         {
             RequestTimeout = TimeSpan.FromSeconds(30);
-            ExpirationCheckInterval = TimeSpan.FromMinutes(2);
+            ExpirationCheckInterval = TimeSpan.FromMinutes(15);
             CountersAggregateInterval = TimeSpan.FromMinutes(1);
-            QueuePollInterval = TimeSpan.FromSeconds(2);
+            QueuePollInterval = TimeSpan.FromMinutes(2);
         }
     }
 }
