@@ -32,7 +32,7 @@ namespace Hangfire.Azure.Queue
                         QueryText = "SELECT DISTINCT VALUE doc['name'] FROM doc WHERE doc.type = @type",
                         Parameters = new SqlParameterCollection
                         {
-                            new SqlParameter("@type", DocumentTypes.Queue)
+                            new SqlParameter("@type", (int)DocumentTypes.Queue)
                         }
                     };
 
@@ -54,7 +54,7 @@ namespace Hangfire.Azure.Queue
                 Parameters = new SqlParameterCollection
                 {
                     new SqlParameter("@name", queue),
-                    new SqlParameter("@type", DocumentTypes.Queue)
+                    new SqlParameter("@type", (int)DocumentTypes.Queue)
                 }
             };
 
@@ -65,32 +65,32 @@ namespace Hangfire.Azure.Queue
 
         public IEnumerable<string> GetEnqueuedJobIds(string queue, int from, int perPage)
         {
-            FeedOptions feedOptions = new FeedOptions { 
-                EnableCrossPartitionQuery = true,
-                MaxItemCount = from + perPage 
+            FeedOptions feedOptions = new FeedOptions
+            {
+                EnableCrossPartitionQuery = true
             };
 
             return storage.Client.CreateDocumentQuery<Documents.Queue>(storage.CollectionUri, feedOptions)
                 .Where(q => q.DocumentType == DocumentTypes.Queue && q.Name == queue && q.FetchedAt.IsDefined() == false)
                 .OrderBy(q => q.CreatedOn)
+                .Skip(from).Take(perPage)
                 .Select(q => q.JobId)
-                .ToQueryResult()
-                .Skip(from).Take(perPage);
+                .ToQueryResult();
         }
 
         public IEnumerable<string> GetFetchedJobIds(string queue, int from, int perPage)
         {
-            FeedOptions feedOptions = new FeedOptions { 
-                EnableCrossPartitionQuery = true,
-                MaxItemCount = from + perPage 
+            FeedOptions feedOptions = new FeedOptions
+            {
+                EnableCrossPartitionQuery = true
             };
 
             return storage.Client.CreateDocumentQuery<Documents.Queue>(storage.CollectionUri, feedOptions)
                 .Where(q => q.DocumentType == DocumentTypes.Queue && q.Name == queue && q.FetchedAt.IsDefined())
                 .OrderBy(q => q.CreatedOn)
+                .Skip(from).Take(perPage)
                 .Select(q => q.JobId)
-                .ToQueryResult()
-                .Skip(from).Take(perPage);
+                .ToQueryResult();
         }
 
         public (int? EnqueuedCount, int? FetchedCount) GetEnqueuedAndFetchedCount(string queue)

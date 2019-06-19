@@ -39,7 +39,7 @@ namespace Hangfire.Azure
             if (job == null) throw new ArgumentNullException(nameof(job));
             if (parameters == null) throw new ArgumentNullException(nameof(parameters));
 
-            InvocationData invocationData = InvocationData.Serialize(job);
+            InvocationData invocationData = InvocationData.SerializeJob(job);
             Documents.Job entityJob = new Documents.Job
             {
                 InvocationData = invocationData,
@@ -102,7 +102,7 @@ namespace Hangfire.Azure
 
                 try
                 {
-                    job = invocationData.Deserialize();
+                    job = invocationData.DeserializeJob();
                 }
                 catch (JobLoadException ex)
                 {
@@ -199,7 +199,7 @@ namespace Hangfire.Azure
                 Parameters = new SqlParameterCollection
                 {
                     new SqlParameter("@key", key),
-                    new SqlParameter("@type", DocumentTypes.Set)
+                    new SqlParameter("@type", (int)DocumentTypes.Set)
                 }
             };
 
@@ -214,21 +214,18 @@ namespace Hangfire.Azure
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
 
-            FeedOptions feedOptions = new FeedOptions { 
-              EnableCrossPartitionQuery = true,
-              MaxItemCount = endingAt + 1 
+            FeedOptions feedOptions = new FeedOptions
+            {
+                EnableCrossPartitionQuery = true
             };
-
             endingAt += 1 - startingFrom;
 
             return Storage.Client.CreateDocumentQuery<Set>(Storage.CollectionUri, feedOptions)
                 .Where(s => s.DocumentType == DocumentTypes.Set && s.Key == key)
                 .OrderBy(s => s.CreatedOn)
+                .Skip(startingFrom).Take(endingAt)
                 .Select(s => s.Value)
-                .ToQueryResult()
-                .Skip(startingFrom)
-                .Take(endingAt)
-                .ToList();
+                .ToQueryResult();
         }
 
         public override long GetCounter(string key)
@@ -241,7 +238,7 @@ namespace Hangfire.Azure
                 Parameters = new SqlParameterCollection
                 {
                     new SqlParameter("@key", key),
-                    new SqlParameter("@type", DocumentTypes.Counter)
+                    new SqlParameter("@type", (int)DocumentTypes.Counter)
                 }
             };
 
@@ -260,7 +257,7 @@ namespace Hangfire.Azure
                 Parameters = new SqlParameterCollection
                 {
                     new SqlParameter("@key", key),
-                    new SqlParameter("@type", DocumentTypes.Set)
+                    new SqlParameter("@type",(int)DocumentTypes.Set)
                 }
             };
 
@@ -293,7 +290,7 @@ namespace Hangfire.Azure
                 Parameters = new SqlParameterCollection
                 {
                     new SqlParameter("@key", key),
-                    new SqlParameter("@type", DocumentTypes.Set),
+                    new SqlParameter("@type", (int)DocumentTypes.Set),
                     new SqlParameter("@from", (int)fromScore),
                     new SqlParameter("@to", (int)toScore)
                 }
@@ -420,7 +417,7 @@ namespace Hangfire.Azure
                 Parameters = new SqlParameterCollection
                 {
                     new SqlParameter("@key", key),
-                    new SqlParameter("@type", DocumentTypes.Hash)
+                    new SqlParameter("@type", (int)DocumentTypes.Hash)
                 }
             };
 
@@ -441,7 +438,7 @@ namespace Hangfire.Azure
                 {
                     new SqlParameter("@key", key),
                     new SqlParameter("@field", name),
-                    new SqlParameter("@type", DocumentTypes.Hash)
+                    new SqlParameter("@type", (int)DocumentTypes.Hash)
                 }
             };
 
@@ -460,7 +457,7 @@ namespace Hangfire.Azure
                 Parameters = new SqlParameterCollection
                 {
                     new SqlParameter("@key", key),
-                    new SqlParameter("@type", DocumentTypes.Hash)
+                    new SqlParameter("@type", (int)DocumentTypes.Hash)
                 }
             };
 
@@ -490,20 +487,18 @@ namespace Hangfire.Azure
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
 
-            FeedOptions feedOptions = new FeedOptions { 
-              EnableCrossPartitionQuery = true,
-              MaxItemCount = endingAt + 1 
+            FeedOptions feedOptions = new FeedOptions
+            {
+                EnableCrossPartitionQuery = true
             };
             endingAt += 1 - startingFrom;
 
             return Storage.Client.CreateDocumentQuery<List>(Storage.CollectionUri, feedOptions)
                 .Where(l => l.DocumentType == DocumentTypes.List && l.Key == key)
                 .OrderByDescending(l => l.CreatedOn)
+                .Skip(startingFrom).Take(endingAt)
                 .Select(l => l.Value)
-                .ToQueryResult()
-                .Skip(startingFrom)
-                .Take(endingAt)
-                .ToList();
+                .ToQueryResult();
         }
 
         public override TimeSpan GetListTtl(string key)
@@ -517,7 +512,7 @@ namespace Hangfire.Azure
                 Parameters = new SqlParameterCollection
                 {
                     new SqlParameter("@key", key),
-                    new SqlParameter("@type", DocumentTypes.List)
+                    new SqlParameter("@type", (int)DocumentTypes.List)
                 }
             };
 
@@ -538,7 +533,7 @@ namespace Hangfire.Azure
                 Parameters = new SqlParameterCollection
                 {
                     new SqlParameter("@key", key),
-                    new SqlParameter("@type", DocumentTypes.List)
+                    new SqlParameter("@type",(int)DocumentTypes.List)
                 }
             };
 
