@@ -286,6 +286,7 @@ namespace Hangfire.Azure
         public override List<string> GetFirstByLowestScoreFromSet(string key, double fromScore, double toScore, int count)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
+            if (count <= 0) throw new ArgumentException("The value must be a positive number", nameof(count));
             if (toScore < fromScore) throw new ArgumentException("The `toScore` value must be higher or equal to the `fromScore` value.");
 
             return Storage.Client.CreateDocumentQuery<Set>(Storage.CollectionUri)

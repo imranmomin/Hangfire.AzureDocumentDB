@@ -14,8 +14,10 @@ function setJobState(id: string, state: IState) {
     const keys: Array<string> = Object.keys(state.data);
     for (const key of keys) {
         const newKey = camelCaseToPascalCase(key);
-        state.data[newKey] = state.data[key];
-        delete state.data[key];
+        if (key !== newKey) {
+            state.data[newKey] = state.data[key];
+            delete state.data[key];
+        }
     }
 
     // default response

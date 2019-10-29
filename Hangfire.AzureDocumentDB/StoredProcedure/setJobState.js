@@ -7,8 +7,10 @@ function setJobState(id, state) {
     const keys = Object.keys(state.data);
     for (const key of keys) {
         const newKey = camelCaseToPascalCase(key);
-        state.data[newKey] = state.data[key];
-        delete state.data[key];
+        if (key !== newKey) {
+            state.data[newKey] = state.data[key];
+            delete state.data[key];
+        }
     }
     response.setBody(false);
     let isAccepted = collection.readDocument(documentLink, (error, job) => {
