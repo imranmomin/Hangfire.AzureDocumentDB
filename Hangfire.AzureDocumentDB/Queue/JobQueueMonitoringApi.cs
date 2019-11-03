@@ -29,14 +29,17 @@ namespace Hangfire.Azure.Queue
                 {
                     SqlQuerySpec sql = new SqlQuerySpec
                     {
-                        QueryText = "SELECT DISTINCT VALUE doc['name'] FROM doc WHERE doc.type = @type",
+                        QueryText = "SELECT VALUE doc['name'] FROM doc WHERE doc.type = @type",
                         Parameters = new SqlParameterCollection
                         {
                             new SqlParameter("@type", (int)DocumentTypes.Queue)
                         }
                     };
 
-                    IEnumerable<string> result = storage.Client.CreateDocumentQuery<string>(storage.CollectionUri, sql).ToQueryResult();
+                    IEnumerable<string> result = storage.Client.CreateDocumentQuery<string>(storage.CollectionUri, sql)
+                        .ToQueryResult()
+                        .Distinct();
+
                     queuesCache.Clear();
                     queuesCache.AddRange(result);
                     cacheUpdated = DateTime.UtcNow;

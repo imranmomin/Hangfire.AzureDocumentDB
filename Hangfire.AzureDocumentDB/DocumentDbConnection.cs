@@ -280,25 +280,22 @@ namespace Hangfire.Azure
 
         public override string GetFirstByLowestScoreFromSet(string key, double fromScore, double toScore)
         {
+            return GetFirstByLowestScoreFromSet(key, fromScore, toScore, 1).FirstOrDefault();
+        }
+
+        public override List<string> GetFirstByLowestScoreFromSet(string key, double fromScore, double toScore, int count)
+        {
             if (key == null) throw new ArgumentNullException(nameof(key));
+            if (count <= 0) throw new ArgumentException("The value must be a positive number", nameof(count));
             if (toScore < fromScore) throw new ArgumentException("The `toScore` value must be higher or equal to the `fromScore` value.");
 
-            SqlQuerySpec sql = new SqlQuerySpec
-            {
-                QueryText = "SELECT TOP 1 VALUE doc['value'] FROM doc WHERE doc.type = @type AND doc.key = @key " +
-                            "AND (doc.score BETWEEN @from AND @to) ORDER BY doc.score",
-                Parameters = new SqlParameterCollection
-                {
-                    new SqlParameter("@key", key),
-                    new SqlParameter("@type", (int)DocumentTypes.Set),
-                    new SqlParameter("@from", (int)fromScore),
-                    new SqlParameter("@to", (int)toScore)
-                }
-            };
-
-            return Storage.Client.CreateDocumentQuery<string>(Storage.CollectionUri, sql)
+            return Storage.Client.CreateDocumentQuery<Set>(Storage.CollectionUri)
+                .Where(s => s.DocumentType == DocumentTypes.Set && s.Key == key && s.Score >= fromScore && s.Score <= toScore)
+                .OrderBy(s => s.Score)
+                .Take(count)
+                .Select(s => s.Value)
                 .ToQueryResult()
-                .FirstOrDefault();
+                .ToList();
         }
 
         #endregion

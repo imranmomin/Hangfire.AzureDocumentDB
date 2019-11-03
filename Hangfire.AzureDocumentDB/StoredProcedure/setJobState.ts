@@ -10,6 +10,16 @@ function setJobState(id: string, state: IState) {
     let collectionLink: string = collection.getAltLink();
     let documentLink: string = `${collectionLink}/docs/${id}`;
 
+    // convert the case for the data
+    const keys: Array<string> = Object.keys(state.data);
+    for (const key of keys) {
+        const newKey = camelCaseToPascalCase(key);
+        if (key !== newKey) {
+            state.data[newKey] = state.data[key];
+            delete state.data[key];
+        }
+    }
+
     // default response
     response.setBody(false);
 
@@ -54,6 +64,15 @@ function setJobState(id: string, state: IState) {
         if (!success) {
             throw new Error("The call was not accepted");
         }
+    }
+
+    /**
+     * Convert the camel case to pascal
+     * @param input - The text which needs to be converted
+     */
+    function camelCaseToPascalCase(input: string): string {
+        return input.replace(/([A-Z])/g, '$1')
+            .replace(/^./, (match) => match.toUpperCase());
     }
 
     if (!isAccepted) {
