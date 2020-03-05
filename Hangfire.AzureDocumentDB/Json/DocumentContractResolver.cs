@@ -4,8 +4,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 
-using Hangfire.Azure.Documents;
-
 namespace Hangfire.Azure.Documents.Json
 {
     internal class DocumentContractResolver : CamelCasePropertyNamesContractResolver

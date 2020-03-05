@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Threading;
 
-using Hangfire.Server;
-using Hangfire.Logging;
-
-using Hangfire.Azure.Helper;
 using Hangfire.Azure.Documents;
 using Hangfire.Azure.Documents.Helper;
+using Hangfire.Azure.Helper;
+using Hangfire.Logging;
+using Hangfire.Server;
+
+using Microsoft.Azure.Documents;
+using Microsoft.Azure.Documents.Client;
 
 namespace Hangfire.Azure
 {
@@ -46,8 +48,8 @@ namespace Hangfire.Azure
                         query += $" AND doc.counter_type = {(int)CounterTypes.Aggregate}";
                     }
 
-                    int deleted = storage.Client.ExecuteDeleteDocuments(query);
-                    
+                    int deleted = storage.Client.ExecuteDeleteDocuments(query, new RequestOptions { PartitionKey = new PartitionKey((int)type) });
+
                     logger.Trace($"Outdated {deleted} records removed from the '{type}' document.");
                 }
             }

@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
-using Microsoft.Azure.Documents.Client;
-
 using Hangfire.Azure.Documents;
+
+using Microsoft.Azure.Documents.Client;
 
 namespace Hangfire.Azure.Helper
 {
@@ -23,27 +24,27 @@ namespace Hangfire.Azure.Helper
             spUpsertDocumentsUri = UriFactory.CreateStoredProcedureUri(databaseName, collectionName, "upsertDocuments");
         }
 
-        internal static int ExecuteUpsertDocuments<T>(this DocumentClient client, Data<T> data)
+        internal static int ExecuteUpsertDocuments<T>(this DocumentClient client, Data<T> data, RequestOptions options = null, CancellationToken cancellationToken = default)
         {
             int affected = 0;
             Data<T> records = new Data<T>(data.Items);
             do
             {
                 records.Items = data.Items.Skip(affected).ToList();
-                Task<StoredProcedureResponse<int>> task = client.ExecuteStoredProcedureWithRetriesAsync<int>(spUpsertDocumentsUri, records);
+                Task<StoredProcedureResponse<int>> task = client.ExecuteStoredProcedureWithRetriesAsync<int>(spUpsertDocumentsUri, options, cancellationToken, records);
                 task.Wait();
                 affected += task.Result;
             } while (affected < data.Items.Count);
             return affected;
         }
 
-        internal static int ExecuteDeleteDocuments(this DocumentClient client, string query)
+        internal static int ExecuteDeleteDocuments(this DocumentClient client, string query, RequestOptions options = null, CancellationToken cancellationToken = default)
         {
             int affected = 0;
             ProcedureResponse response;
             do
             {
-                Task<StoredProcedureResponse<ProcedureResponse>> task = client.ExecuteStoredProcedureWithRetriesAsync<ProcedureResponse>(spDeleteDocumentsUri, query);
+                Task<StoredProcedureResponse<ProcedureResponse>> task = client.ExecuteStoredProcedureWithRetriesAsync<ProcedureResponse>(spDeleteDocumentsUri, options, cancellationToken, query);
                 task.Wait();
                 response = task.Result;
                 affected += response.Affected;
@@ -51,23 +52,23 @@ namespace Hangfire.Azure.Helper
             return affected;
         }
 
-        internal static void ExecutePersistDocuments(this DocumentClient client, string query)
+        internal static void ExecutePersistDocuments(this DocumentClient client, string query, RequestOptions options = null, CancellationToken cancellationToken = default)
         {
             ProcedureResponse response;
             do
             {
-                Task<StoredProcedureResponse<ProcedureResponse>> task = client.ExecuteStoredProcedureWithRetriesAsync<ProcedureResponse>(spPersistDocumentsUri, query);
+                Task<StoredProcedureResponse<ProcedureResponse>> task = client.ExecuteStoredProcedureWithRetriesAsync<ProcedureResponse>(spPersistDocumentsUri, options, cancellationToken, query);
                 task.Wait();
                 response = task.Result;
             } while (response.Continuation);
         }
 
-        internal static void ExecuteExpireDocuments(this DocumentClient client, string query, int epoch)
+        internal static void ExecuteExpireDocuments(this DocumentClient client, string query, int epoch, RequestOptions options = null, CancellationToken cancellationToken = default)
         {
             ProcedureResponse response;
             do
             {
-                Task<StoredProcedureResponse<ProcedureResponse>> task = client.ExecuteStoredProcedureWithRetriesAsync<ProcedureResponse>(spExpireDocumentsUri, query, epoch);
+                Task<StoredProcedureResponse<ProcedureResponse>> task = client.ExecuteStoredProcedureWithRetriesAsync<ProcedureResponse>(spExpireDocumentsUri, options, cancellationToken, query, epoch);
                 task.Wait();
                 response = task.Result;
             } while (response.Continuation);

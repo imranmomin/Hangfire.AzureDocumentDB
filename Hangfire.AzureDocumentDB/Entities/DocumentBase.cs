@@ -1,8 +1,9 @@
 ﻿using System;
-using Newtonsoft.Json;
 using System.Collections.Generic;
 
 using Microsoft.Azure.Documents;
+
+using Newtonsoft.Json;
 
 // ReSharper disable once CheckNamespace
 namespace Hangfire.Azure.Documents
@@ -18,6 +19,9 @@ namespace Hangfire.Azure.Documents
         [JsonProperty("expire_on")]
         [JsonConverter(typeof(UnixDateTimeConverter))]
         public DateTime? ExpireOn { get; set; }
+
+        [JsonProperty(PropertyName = "ttl", NullValueHandling = NullValueHandling.Ignore)]
+        public int? TimeToLive { get; set; }
 
         [JsonProperty("type")]
         public abstract DocumentTypes DocumentType { get; }

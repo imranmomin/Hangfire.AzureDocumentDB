@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25123.0
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29806.167
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hangfire.AzureDocumentDB", "Hangfire.AzureDocumentDB\Hangfire.AzureDocumentDB.csproj", "{E0AD3801-5504-49A7-80C6-8B4373DDE0E5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hangfire.AzureDocumentDB", "Hangfire.AzureDocumentDB\Hangfire.AzureDocumentDB.csproj", "{E0AD3801-5504-49A7-80C6-8B4373DDE0E5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,5 +18,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C15DCC20-26DF-41C7-8C83-0A8D63706B22}
 	EndGlobalSection
 EndGlobal

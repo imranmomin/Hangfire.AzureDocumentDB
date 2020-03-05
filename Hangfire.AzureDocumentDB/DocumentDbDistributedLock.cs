@@ -2,12 +2,12 @@
 using System.Net;
 using System.Threading.Tasks;
 
+using Hangfire.Azure.Documents;
+using Hangfire.Azure.Helper;
 using Hangfire.Logging;
+
 using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
-
-using Hangfire.Azure.Helper;
-using Hangfire.Azure.Documents;
 
 namespace Hangfire.Azure
 {
@@ -17,6 +17,7 @@ namespace Hangfire.Azure
         private readonly string resource;
         private readonly DocumentDbStorage storage;
         private string resourceId;
+        private readonly PartitionKey partitionKey = new PartitionKey((int)DocumentTypes.Lock);
 
         public DocumentDbDistributedLock(string resource, TimeSpan timeout, DocumentDbStorage storage)
         {
@@ -30,7 +31,7 @@ namespace Hangfire.Azure
             if (!string.IsNullOrEmpty(resourceId))
             {
                 Uri uri = UriFactory.CreateDocumentUri(storage.Options.DatabaseName, storage.Options.CollectionName, resourceId);
-                Task task = storage.Client.DeleteDocumentWithRetriesAsync(uri).ContinueWith(t =>
+                Task task = storage.Client.DeleteDocumentWithRetriesAsync(uri, new RequestOptions { PartitionKey = partitionKey }).ContinueWith(t =>
                 {
                     resourceId = string.Empty;
                     logger.Trace($"Lock released for {resource}");
@@ -56,7 +57,7 @@ namespace Hangfire.Azure
 
                 try
                 {
-                    Task<DocumentResponse<Lock>> readTask = storage.Client.ReadDocumentWithRetriesAsync<Lock>(uri);
+                    Task<DocumentResponse<Lock>> readTask = storage.Client.ReadDocumentWithRetriesAsync<Lock>(uri, new RequestOptions { PartitionKey = partitionKey });
                     readTask.Wait();
 
                     if (readTask.Result.Document != null)
@@ -65,7 +66,7 @@ namespace Hangfire.Azure
                         @lock.ExpireOn = DateTime.UtcNow.Add(timeout);
                         @lock.TimeToLive = (int)ttl.TotalSeconds;
 
-                        Task<ResourceResponse<Document>> updateTask = storage.Client.UpsertDocumentWithRetriesAsync(storage.CollectionUri, @lock);
+                        Task<ResourceResponse<Document>> updateTask = storage.Client.UpsertDocumentWithRetriesAsync(storage.CollectionUri, @lock, new RequestOptions { PartitionKey = partitionKey });
                         updateTask.Wait();
 
                         if (updateTask.Result.StatusCode == HttpStatusCode.OK)
@@ -85,7 +86,7 @@ namespace Hangfire.Azure
                         TimeToLive = (int)ttl.TotalSeconds
                     };
 
-                    Task<ResourceResponse<Document>> createTask = storage.Client.UpsertDocumentWithRetriesAsync(storage.CollectionUri, @lock);
+                    Task<ResourceResponse<Document>> createTask = storage.Client.UpsertDocumentWithRetriesAsync(storage.CollectionUri, @lock, new RequestOptions { PartitionKey = partitionKey });
                     createTask.Wait();
 
                     if (createTask.Result.StatusCode == HttpStatusCode.OK || createTask.Result.StatusCode == HttpStatusCode.Created)

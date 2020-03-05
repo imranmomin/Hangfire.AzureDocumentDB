@@ -63,6 +63,7 @@ function persistDocument(query: string) {
         if (documents.length > 0) {
 
             let doc: IDocumentBase = documents[0];
+            delete doc.ttl;
             delete doc.expire_on;
 
             let option: IReplaceOptions = {

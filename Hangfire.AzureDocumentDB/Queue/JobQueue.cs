@@ -1,16 +1,17 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Collections.Generic;
 
+using Hangfire.Azure.Documents;
+using Hangfire.Azure.Documents.Helper;
+using Hangfire.Azure.Helper;
 using Hangfire.Logging;
 using Hangfire.Storage;
+
 using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
-
-using Hangfire.Azure.Helper;
-using Hangfire.Azure.Documents.Helper;
 
 namespace Hangfire.Azure.Queue
 {
@@ -22,6 +23,7 @@ namespace Hangfire.Azure.Queue
         private readonly TimeSpan defaultLockTimeout;
         private readonly TimeSpan invisibilityTimeout = TimeSpan.FromMinutes(15);
         private readonly object syncLock = new object();
+        private readonly PartitionKey partitionKey = new PartitionKey((int)DocumentTypes.Queue);
 
         public JobQueue(DocumentDbStorage storage)
         {
@@ -60,7 +62,7 @@ namespace Hangfire.Azure.Queue
                         };
                         sql.Parameters.Add(new SqlParameter("@timeout", invisibilityTimeoutEpoch));
 
-                        Documents.Queue data = storage.Client.CreateDocumentQuery<Documents.Queue>(storage.CollectionUri, sql)
+                        Documents.Queue data = storage.Client.CreateDocumentQuery<Documents.Queue>(storage.CollectionUri, sql, new FeedOptions { PartitionKey = partitionKey })
                             .ToQueryResult()
                             .FirstOrDefault();
 
@@ -70,7 +72,7 @@ namespace Hangfire.Azure.Queue
                             data.FetchedAt = DateTime.UtcNow;
 
                             Uri replaceUri = new Uri(data.SelfLink, UriKind.Relative);
-                            Task<ResourceResponse<Document>> task = storage.Client.ReplaceDocumentWithRetriesAsync(replaceUri, data, cancellationToken: cancellationToken);
+                            Task<ResourceResponse<Document>> task = storage.Client.ReplaceDocumentWithRetriesAsync(replaceUri, data, new RequestOptions { PartitionKey = partitionKey }, cancellationToken: cancellationToken);
                             task.Wait(cancellationToken);
 
                             logger.Trace($"Found job {data.JobId} from the queue : {data.Name}");

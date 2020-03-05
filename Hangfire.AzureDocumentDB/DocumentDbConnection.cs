@@ -1,20 +1,20 @@
 ﻿using System;
-using System.Net;
+using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Collections.Generic;
 
+using Hangfire.Azure.Documents;
+using Hangfire.Azure.Documents.Helper;
+using Hangfire.Azure.Helper;
+using Hangfire.Azure.Queue;
 using Hangfire.Common;
 using Hangfire.Server;
 using Hangfire.Storage;
+
 using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
-
-using Hangfire.Azure.Queue;
-using Hangfire.Azure.Helper;
-using Hangfire.Azure.Documents;
-using Hangfire.Azure.Documents.Helper;
 
 namespace Hangfire.Azure
 {
@@ -54,7 +54,7 @@ namespace Hangfire.Azure
                 }).ToArray()
             };
 
-            Task<ResourceResponse<Document>> task = Storage.Client.CreateDocumentWithRetriesAsync(Storage.CollectionUri, entityJob);
+            Task<ResourceResponse<Document>> task = Storage.Client.CreateDocumentWithRetriesAsync(Storage.CollectionUri, entityJob, new RequestOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Job) });
             task.Wait();
 
             if (task.Result.StatusCode == HttpStatusCode.Created || task.Result.StatusCode == HttpStatusCode.OK)
@@ -88,7 +88,7 @@ namespace Hangfire.Azure
             if (jobId == null) throw new ArgumentNullException(nameof(jobId));
 
             Uri uri = UriFactory.CreateDocumentUri(Storage.Options.DatabaseName, Storage.Options.CollectionName, jobId);
-            Task<DocumentResponse<Documents.Job>> task = Storage.Client.ReadDocumentWithRetriesAsync<Documents.Job>(uri);
+            Task<DocumentResponse<Documents.Job>> task = Storage.Client.ReadDocumentWithRetriesAsync<Documents.Job>(uri, new RequestOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Job) });
             task.Wait();
 
             if (task.Result.Document != null)
@@ -126,7 +126,7 @@ namespace Hangfire.Azure
             if (jobId == null) throw new ArgumentNullException(nameof(jobId));
 
             Uri uri = UriFactory.CreateDocumentUri(Storage.Options.DatabaseName, Storage.Options.CollectionName, jobId);
-            Task<DocumentResponse<Documents.Job>> task = Storage.Client.ReadDocumentWithRetriesAsync<Documents.Job>(uri);
+            Task<DocumentResponse<Documents.Job>> task = Storage.Client.ReadDocumentWithRetriesAsync<Documents.Job>(uri, new RequestOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Job) });
             task.Wait();
 
             if (task.Result.Document != null)
@@ -135,7 +135,7 @@ namespace Hangfire.Azure
 
                 // get the state document
                 uri = UriFactory.CreateDocumentUri(Storage.Options.DatabaseName, Storage.Options.CollectionName, job.StateId);
-                Task<DocumentResponse<State>> stateTask = Storage.Client.ReadDocumentWithRetriesAsync<State>(uri);
+                Task<DocumentResponse<State>> stateTask = Storage.Client.ReadDocumentWithRetriesAsync<State>(uri, new RequestOptions { PartitionKey = new PartitionKey((int)DocumentTypes.State) });
                 stateTask.Wait();
 
                 if (stateTask.Result.Document != null)
@@ -163,7 +163,7 @@ namespace Hangfire.Azure
             if (name == null) throw new ArgumentNullException(nameof(name));
 
             Uri uri = UriFactory.CreateDocumentUri(Storage.Options.DatabaseName, Storage.Options.CollectionName, id);
-            Task<DocumentResponse<Documents.Job>> task = Storage.Client.ReadDocumentWithRetriesAsync<Documents.Job>(uri);
+            Task<DocumentResponse<Documents.Job>> task = Storage.Client.ReadDocumentWithRetriesAsync<Documents.Job>(uri, new RequestOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Job) });
             Documents.Job data = task.Result;
 
             return data?.Parameters.Where(p => p.Name == name).Select(p => p.Value).FirstOrDefault();
@@ -181,7 +181,7 @@ namespace Hangfire.Azure
             };
 
             Uri spSetJobParameterUri = UriFactory.CreateStoredProcedureUri(Storage.Options.DatabaseName, Storage.Options.CollectionName, "setJobParameter");
-            Task<StoredProcedureResponse<bool>> task = Storage.Client.ExecuteStoredProcedureWithRetriesAsync<bool>(spSetJobParameterUri, id, parameter);
+            Task<StoredProcedureResponse<bool>> task = Storage.Client.ExecuteStoredProcedureWithRetriesAsync<bool>(spSetJobParameterUri, new RequestOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Job) }, default, id, parameter);
             task.Wait();
         }
 
@@ -203,7 +203,7 @@ namespace Hangfire.Azure
                 }
             };
 
-            int? expireOn = Storage.Client.CreateDocumentQuery<int?>(Storage.CollectionUri, sql)
+            int? expireOn = Storage.Client.CreateDocumentQuery<int?>(Storage.CollectionUri, sql, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Set) })
                 .ToQueryResult()
                 .FirstOrDefault();
 
@@ -214,18 +214,15 @@ namespace Hangfire.Azure
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
 
-            FeedOptions feedOptions = new FeedOptions
-            {
-                EnableCrossPartitionQuery = true
-            };
             endingAt += 1 - startingFrom;
 
-            return Storage.Client.CreateDocumentQuery<Set>(Storage.CollectionUri, feedOptions)
+            return Storage.Client.CreateDocumentQuery<Set>(Storage.CollectionUri, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Set) })
                 .Where(s => s.DocumentType == DocumentTypes.Set && s.Key == key)
                 .OrderBy(s => s.CreatedOn)
                 .Skip(startingFrom).Take(endingAt)
                 .Select(s => s.Value)
-                .ToQueryResult();
+                .ToQueryResult()
+                .ToList();
         }
 
         public override long GetCounter(string key)
@@ -242,7 +239,7 @@ namespace Hangfire.Azure
                 }
             };
 
-            return Storage.Client.CreateDocumentQuery<long>(Storage.CollectionUri, sql)
+            return Storage.Client.CreateDocumentQuery<long>(Storage.CollectionUri, sql, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Counter) })
                 .ToQueryResult()
                 .FirstOrDefault();
         }
@@ -261,7 +258,7 @@ namespace Hangfire.Azure
                 }
             };
 
-            return Storage.Client.CreateDocumentQuery<long>(Storage.CollectionUri, sql)
+            return Storage.Client.CreateDocumentQuery<long>(Storage.CollectionUri, sql, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Set) })
                 .ToQueryResult()
                 .FirstOrDefault();
         }
@@ -270,7 +267,7 @@ namespace Hangfire.Azure
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
 
-            IEnumerable<string> sets = Storage.Client.CreateDocumentQuery<Set>(Storage.CollectionUri)
+            IEnumerable<string> sets = Storage.Client.CreateDocumentQuery<Set>(Storage.CollectionUri, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Set) })
                 .Where(s => s.DocumentType == DocumentTypes.Set && s.Key == key)
                 .Select(s => s.Value)
                 .ToQueryResult();
@@ -289,7 +286,7 @@ namespace Hangfire.Azure
             if (count <= 0) throw new ArgumentException("The value must be a positive number", nameof(count));
             if (toScore < fromScore) throw new ArgumentException("The `toScore` value must be higher or equal to the `fromScore` value.");
 
-            return Storage.Client.CreateDocumentQuery<Set>(Storage.CollectionUri)
+            return Storage.Client.CreateDocumentQuery<Set>(Storage.CollectionUri, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Set) })
                 .Where(s => s.DocumentType == DocumentTypes.Set && s.Key == key && s.Score >= fromScore && s.Score <= toScore)
                 .OrderBy(s => s.Score)
                 .Take(count)
@@ -316,7 +313,7 @@ namespace Hangfire.Azure
                 CreatedOn = DateTime.UtcNow,
                 LastHeartbeat = DateTime.UtcNow
             };
-            Task<ResourceResponse<Document>> task = Storage.Client.UpsertDocumentWithRetriesAsync(Storage.CollectionUri, server);
+            Task<ResourceResponse<Document>> task = Storage.Client.UpsertDocumentWithRetriesAsync(Storage.CollectionUri, server, new RequestOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Server) });
             task.Wait();
         }
 
@@ -326,7 +323,7 @@ namespace Hangfire.Azure
             string id = $"{serverId}:{DocumentTypes.Server}".GenerateHash();
 
             Uri spHeartbeatServerUri = UriFactory.CreateStoredProcedureUri(Storage.Options.DatabaseName, Storage.Options.CollectionName, "heartbeatServer");
-            Task<StoredProcedureResponse<bool>> task = Storage.Client.ExecuteStoredProcedureWithRetriesAsync<bool>(spHeartbeatServerUri, id, DateTime.UtcNow.ToEpoch());
+            Task<StoredProcedureResponse<bool>> task = Storage.Client.ExecuteStoredProcedureWithRetriesAsync<bool>(spHeartbeatServerUri, new RequestOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Server) }, default, id, DateTime.UtcNow.ToEpoch());
             task.Wait();
         }
 
@@ -336,7 +333,7 @@ namespace Hangfire.Azure
             string id = $"{serverId}:{DocumentTypes.Server}".GenerateHash();
 
             Uri documentUri = UriFactory.CreateDocumentUri(Storage.Options.DatabaseName, Storage.Options.CollectionName, id);
-            Task<ResourceResponse<Document>> task = Storage.Client.DeleteDocumentWithRetriesAsync(documentUri);
+            Task<ResourceResponse<Document>> task = Storage.Client.DeleteDocumentWithRetriesAsync(documentUri, new RequestOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Server) });
             task.Wait();
         }
 
@@ -351,7 +348,7 @@ namespace Hangfire.Azure
             string query = $"SELECT doc._self FROM doc WHERE doc.type = {(int)DocumentTypes.Server} AND IS_DEFINED(doc.last_heartbeat) " +
                            $"AND doc.last_heartbeat <= {lastHeartbeat}";
 
-            return Storage.Client.ExecuteDeleteDocuments(query);
+            return Storage.Client.ExecuteDeleteDocuments(query, new RequestOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Server) });
         }
 
         #endregion
@@ -362,7 +359,7 @@ namespace Hangfire.Azure
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
 
-            return Storage.Client.CreateDocumentQuery<Hash>(Storage.CollectionUri)
+            return Storage.Client.CreateDocumentQuery<Hash>(Storage.CollectionUri, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Hash) })
                 .Where(h => h.DocumentType == DocumentTypes.Hash && h.Key == key)
                 .Select(h => new { h.Field, h.Value })
                 .ToQueryResult()
@@ -376,9 +373,11 @@ namespace Hangfire.Azure
 
             Data<Hash> data = new Data<Hash>();
 
-            List<Hash> hashes = Storage.Client.CreateDocumentQuery<Hash>(Storage.CollectionUri)
+            PartitionKey partitionKey = new PartitionKey((int)DocumentTypes.Hash);
+            List<Hash> hashes = Storage.Client.CreateDocumentQuery<Hash>(Storage.CollectionUri, new FeedOptions { PartitionKey = partitionKey })
                 .Where(h => h.DocumentType == DocumentTypes.Hash && h.Key == key)
-                .ToQueryResult();
+                .ToQueryResult()
+                .ToList();
 
             Hash[] sources = keyValuePairs.Select(k => new Hash
             {
@@ -401,7 +400,7 @@ namespace Hangfire.Azure
                 }
             }
 
-            Storage.Client.ExecuteUpsertDocuments(data);
+            Storage.Client.ExecuteUpsertDocuments(data, new RequestOptions { PartitionKey = partitionKey });
         }
 
         public override long GetHashCount(string key)
@@ -418,7 +417,7 @@ namespace Hangfire.Azure
                 }
             };
 
-            return Storage.Client.CreateDocumentQuery<long>(Storage.CollectionUri, sql)
+            return Storage.Client.CreateDocumentQuery<long>(Storage.CollectionUri, sql, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Hash) })
                 .ToQueryResult()
                 .FirstOrDefault();
         }
@@ -439,7 +438,7 @@ namespace Hangfire.Azure
                 }
             };
 
-            return Storage.Client.CreateDocumentQuery<string>(Storage.CollectionUri, sql)
+            return Storage.Client.CreateDocumentQuery<string>(Storage.CollectionUri, sql, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Hash) })
                 .ToQueryResult()
                 .FirstOrDefault();
         }
@@ -458,7 +457,7 @@ namespace Hangfire.Azure
                 }
             };
 
-            int? expireOn = Storage.Client.CreateDocumentQuery<int?>(Storage.CollectionUri, sql)
+            int? expireOn = Storage.Client.CreateDocumentQuery<int?>(Storage.CollectionUri, sql, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Hash) })
                 .ToQueryResult()
                 .FirstOrDefault();
 
@@ -473,35 +472,32 @@ namespace Hangfire.Azure
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
 
-            return Storage.Client.CreateDocumentQuery<List>(Storage.CollectionUri)
+            return Storage.Client.CreateDocumentQuery<List>(Storage.CollectionUri, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.List) })
                 .Where(l => l.DocumentType == DocumentTypes.List && l.Key == key)
                 .OrderByDescending(l => l.CreatedOn)
                 .Select(l => l.Value)
-                .ToQueryResult();
+                .ToQueryResult()
+                .ToList();
         }
 
         public override List<string> GetRangeFromList(string key, int startingFrom, int endingAt)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
 
-            FeedOptions feedOptions = new FeedOptions
-            {
-                EnableCrossPartitionQuery = true
-            };
             endingAt += 1 - startingFrom;
 
-            return Storage.Client.CreateDocumentQuery<List>(Storage.CollectionUri, feedOptions)
+            return Storage.Client.CreateDocumentQuery<List>(Storage.CollectionUri, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.List) })
                 .Where(l => l.DocumentType == DocumentTypes.List && l.Key == key)
                 .OrderByDescending(l => l.CreatedOn)
                 .Skip(startingFrom).Take(endingAt)
                 .Select(l => l.Value)
-                .ToQueryResult();
+                .ToQueryResult()
+                .ToList();
         }
 
         public override TimeSpan GetListTtl(string key)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
-
 
             SqlQuerySpec sql = new SqlQuerySpec
             {
@@ -513,7 +509,7 @@ namespace Hangfire.Azure
                 }
             };
 
-            int? expireOn = Storage.Client.CreateDocumentQuery<int?>(Storage.CollectionUri, sql)
+            int? expireOn = Storage.Client.CreateDocumentQuery<int?>(Storage.CollectionUri, sql, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.List) })
                 .ToQueryResult()
                 .FirstOrDefault();
 
@@ -534,7 +530,7 @@ namespace Hangfire.Azure
                 }
             };
 
-            return Storage.Client.CreateDocumentQuery<long>(Storage.CollectionUri, sql)
+            return Storage.Client.CreateDocumentQuery<long>(Storage.CollectionUri, sql, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.List) })
                 .ToQueryResult()
                 .FirstOrDefault();
         }

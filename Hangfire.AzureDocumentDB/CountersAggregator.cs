@@ -1,17 +1,17 @@
 ﻿using System;
-using System.Net;
+using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Collections.Generic;
 
-using Hangfire.Server;
+using Hangfire.Azure.Documents;
+using Hangfire.Azure.Helper;
 using Hangfire.Logging;
+using Hangfire.Server;
+
 using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
-
-using Hangfire.Azure.Helper;
-using Hangfire.Azure.Documents;
 
 namespace Hangfire.Azure
 {
@@ -23,6 +23,7 @@ namespace Hangfire.Azure
         private const string DISTRIBUTED_LOCK_KEY = "locks:counters:aggragator";
         private readonly TimeSpan defaultLockTimeout;
         private readonly DocumentDbStorage storage;
+        private readonly PartitionKey partitionKey = new PartitionKey((int)DocumentTypes.Counter);
 
         public CountersAggregator(DocumentDbStorage storage)
         {
@@ -36,9 +37,10 @@ namespace Hangfire.Azure
             {
                 logger.Trace("Aggregating records in 'Counter' table.");
 
-                List<Counter> rawCounters = storage.Client.CreateDocumentQuery<Counter>(storage.CollectionUri)
+                List<Counter> rawCounters = storage.Client.CreateDocumentQuery<Counter>(storage.CollectionUri, new FeedOptions { PartitionKey = partitionKey })
                     .Where(c => c.DocumentType == DocumentTypes.Counter && c.Type == CounterTypes.Raw)
-                    .ToQueryResult();
+                    .ToQueryResult()
+                    .ToList();
 
                 Dictionary<string, (int Value, DateTime? ExpireOn, List<Counter> Counters)> counters = rawCounters.GroupBy(c => c.Key)
                     .ToDictionary(k => k.Key, v => (Value: v.Sum(c => c.Value), ExpireOn: v.Max(c => c.ExpireOn), Counters: v.ToList()));
@@ -55,7 +57,7 @@ namespace Hangfire.Azure
 
                         try
                         {
-                            Task<DocumentResponse<Counter>> readTask = storage.Client.ReadDocumentWithRetriesAsync<Counter>(uri, cancellationToken: cancellationToken);
+                            Task<DocumentResponse<Counter>> readTask = storage.Client.ReadDocumentWithRetriesAsync<Counter>(uri, new RequestOptions { PartitionKey = partitionKey }, cancellationToken: cancellationToken);
                             readTask.Wait(cancellationToken);
 
                             if (readTask.Result.StatusCode == HttpStatusCode.OK)
@@ -90,7 +92,7 @@ namespace Hangfire.Azure
                             }
                         }
 
-                        Task<ResourceResponse<Document>> task = storage.Client.UpsertDocumentWithRetriesAsync(storage.CollectionUri, aggregated, cancellationToken: cancellationToken);
+                        Task<ResourceResponse<Document>> task = storage.Client.UpsertDocumentWithRetriesAsync(storage.CollectionUri, aggregated, new RequestOptions { PartitionKey = partitionKey }, cancellationToken: cancellationToken);
                         Task continueTask = task.ContinueWith(t =>
                         {
                             if (t.Result.StatusCode == HttpStatusCode.Created || t.Result.StatusCode == HttpStatusCode.OK)
@@ -98,7 +100,7 @@ namespace Hangfire.Azure
                                 string ids = string.Join(",", data.Counters.Select(c => $"'{c.Id}'").ToArray());
                                 string query = $"SELECT doc._self FROM doc WHERE doc.type = {(int)DocumentTypes.Counter} AND doc.counter_type = {(int)CounterTypes.Raw} AND doc.id IN ({ids})";
 
-                                int deleted = storage.Client.ExecuteDeleteDocuments(query);
+                                int deleted = storage.Client.ExecuteDeleteDocuments(query, new RequestOptions { PartitionKey = partitionKey }, cancellationToken);
 
                                 logger.Trace($"Total {deleted} records from the 'Counter:{aggregated.Key}' were aggregated.");
                             }

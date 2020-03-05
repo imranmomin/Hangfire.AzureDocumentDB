@@ -3,12 +3,13 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
+using Hangfire.Azure.Documents;
+using Hangfire.Azure.Helper;
 using Hangfire.Logging;
 using Hangfire.Storage;
+
 using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
-
-using Hangfire.Azure.Helper;
 
 // ReSharper disable once CheckNamespace
 namespace Hangfire.Azure.Queue
@@ -23,6 +24,7 @@ namespace Hangfire.Azure.Queue
         private bool disposed;
         private bool removedFromQueue;
         private bool reQueued;
+        private readonly PartitionKey partitionKey = new PartitionKey((int)DocumentTypes.Queue);
 
         public FetchedJob(DocumentDbStorage storage, Documents.Queue data)
         {
@@ -58,7 +60,7 @@ namespace Hangfire.Azure.Queue
                 try
                 {
                     Uri deleteUri = new Uri(data.SelfLink, UriKind.Relative);
-                    Task<ResourceResponse<Document>> task = storage.Client.DeleteDocumentWithRetriesAsync(deleteUri);
+                    Task<ResourceResponse<Document>> task = storage.Client.DeleteDocumentWithRetriesAsync(deleteUri, new RequestOptions { PartitionKey = partitionKey });
                     task.Wait();
                 }
                 finally
@@ -79,7 +81,7 @@ namespace Hangfire.Azure.Queue
                 try
                 {
                     Uri replaceUri = new Uri(data.SelfLink, UriKind.Relative);
-                    Task<ResourceResponse<Document>> task = storage.Client.ReplaceDocumentWithRetriesAsync(replaceUri, data);
+                    Task<ResourceResponse<Document>> task = storage.Client.ReplaceDocumentWithRetriesAsync(replaceUri, data, new RequestOptions { PartitionKey = partitionKey });
                     task.Wait();
                 }
                 catch (DocumentClientException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
@@ -88,7 +90,7 @@ namespace Hangfire.Azure.Queue
                     data.SelfLink = null;
 
                     Uri collectionUri = UriFactory.CreateDocumentCollectionUri(storage.Options.DatabaseName, storage.Options.CollectionName);
-                    Task<ResourceResponse<Document>> task = storage.Client.CreateDocumentWithRetriesAsync(collectionUri, data);
+                    Task<ResourceResponse<Document>> task = storage.Client.CreateDocumentWithRetriesAsync(collectionUri, data, new RequestOptions { PartitionKey = partitionKey });
                     task.Wait();
                 }
                 finally
@@ -110,7 +112,7 @@ namespace Hangfire.Azure.Queue
                     queue.FetchedAt = DateTime.UtcNow;
 
                     Uri replaceUri = new Uri(queue.SelfLink, UriKind.Relative);
-                    Task<ResourceResponse<Document>> task = storage.Client.ReplaceDocumentWithRetriesAsync(replaceUri, queue);
+                    Task<ResourceResponse<Document>> task = storage.Client.ReplaceDocumentWithRetriesAsync(replaceUri, queue, new RequestOptions { PartitionKey = partitionKey });
                     task.Wait();
 
                     logger.Trace($"Keep-alive query for job: {queue.Id} sent");

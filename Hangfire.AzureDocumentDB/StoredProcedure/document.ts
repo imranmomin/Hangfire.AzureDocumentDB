@@ -6,6 +6,7 @@ interface IDocumentBase extends IDocumentMeta {
 	type: number;
 	// ReSharper disable once InconsistentNaming
 	expire_on: number;
+	ttl?: number;
 }
 
 interface IProcedureResponse {

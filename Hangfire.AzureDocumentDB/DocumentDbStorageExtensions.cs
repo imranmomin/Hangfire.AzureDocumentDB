@@ -1,4 +1,5 @@
 ﻿using System;
+
 using Hangfire.Azure;
 
 // ReSharper disable UnusedMember.Global
@@ -10,7 +11,7 @@ namespace Hangfire
     /// </summary>
     public static class DocumentDbStorageExtensions
     {
-       /// <summary>
+        /// <summary>
         /// Enables to attach Azure DocumentDb to Hangfire
         /// </summary>
         /// <param name="configuration">The IGlobalConfiguration object</param>
@@ -25,7 +26,7 @@ namespace Hangfire
             if (configuration == null) throw new ArgumentNullException(nameof(configuration));
             if (string.IsNullOrEmpty(url)) throw new ArgumentNullException(nameof(url));
             if (string.IsNullOrEmpty(authSecret)) throw new ArgumentNullException(nameof(authSecret));
-            
+
             DocumentDbStorage storage = new DocumentDbStorage(url, authSecret, database, collection, options);
             return configuration.UseStorage(storage);
         }

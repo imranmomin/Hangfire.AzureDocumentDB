@@ -1,20 +1,21 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Collections.Generic;
 
+using Hangfire.Azure.Documents.Json;
+using Hangfire.Azure.Helper;
+using Hangfire.Azure.Queue;
+using Hangfire.Logging;
 using Hangfire.Server;
 using Hangfire.Storage;
-using Hangfire.Logging;
-using Newtonsoft.Json;
+
 using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
 
-using Hangfire.Azure.Queue;
-using Hangfire.Azure.Helper;
-using Hangfire.Azure.Documents.Json;
+using Newtonsoft.Json;
 
 
 namespace Hangfire.Azure
@@ -132,7 +133,12 @@ namespace Hangfire.Azure
             {
                 logger.Info($"Creating document collection : {t.Result.Resource.Id}");
                 Uri databaseUri = UriFactory.CreateDatabaseUri(t.Result.Resource.Id);
-                return Client.CreateDocumentCollectionIfNotExistsAsync(databaseUri, new DocumentCollection { Id = Options.CollectionName });
+                DocumentCollection documentCollection = new DocumentCollection
+                {
+                    Id = Options.CollectionName,
+                    PartitionKey = new PartitionKeyDefinition { Paths = new System.Collections.ObjectModel.Collection<string> { "/type" } }
+                };
+                return Client.CreateDocumentCollectionIfNotExistsAsync(databaseUri, documentCollection);
             }, TaskContinuationOptions.OnlyOnRanToCompletion).Unwrap();
 
             // create stored procedures 

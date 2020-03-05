@@ -1,4 +1,5 @@
 ﻿using System;
+
 using Microsoft.Azure.Documents.Client;
 
 // ReSharper disable MemberCanBePrivate.Global
