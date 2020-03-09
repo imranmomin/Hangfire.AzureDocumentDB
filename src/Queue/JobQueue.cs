@@ -62,7 +62,7 @@ namespace Hangfire.Azure.Queue
                         };
                         sql.Parameters.Add(new SqlParameter("@timeout", invisibilityTimeoutEpoch));
 
-                        Documents.Queue data = storage.Client.CreateDocumentQuery<Documents.Queue>(storage.CollectionUri, sql, new FeedOptions { PartitionKey = partitionKey })
+                        Documents.Queue data = storage.Client.CreateDocumentQueryAsync<Documents.Queue>(storage.CollectionUri, sql, new FeedOptions { PartitionKey = partitionKey })
                             .ToQueryResult()
                             .FirstOrDefault();
 

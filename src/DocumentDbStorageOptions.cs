@@ -46,6 +46,11 @@ namespace Hangfire.Azure
         public Protocol ConnectionProtocol { get; set; }
 
         /// <summary>
+        /// Gets or sets the partitioning of the document based on /type
+        /// </summary>
+        public bool EnablePartition { get; set; }
+
+        /// <summary>
         /// Create an instance of AzureDocumentDB Storage option with default values
         /// </summary>
         public DocumentDbStorageOptions()
@@ -56,6 +61,7 @@ namespace Hangfire.Azure
             QueuePollInterval = TimeSpan.FromSeconds(15);
             ConnectionMode = ConnectionMode.Direct;
             ConnectionProtocol = Protocol.Tcp;
+            EnablePartition = false;
         }
     }
 }

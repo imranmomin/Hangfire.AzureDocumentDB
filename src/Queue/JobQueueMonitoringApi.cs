@@ -37,7 +37,7 @@ namespace Hangfire.Azure.Queue
                         }
                     };
 
-                    IEnumerable<string> result = storage.Client.CreateDocumentQuery<string>(storage.CollectionUri, sql, new FeedOptions { PartitionKey = partitionKey })
+                    IEnumerable<string> result = storage.Client.CreateDocumentQueryAsync<string>(storage.CollectionUri, sql, new FeedOptions { PartitionKey = partitionKey })
                         .ToQueryResult()
                         .Distinct();
 
@@ -62,14 +62,14 @@ namespace Hangfire.Azure.Queue
                 }
             };
 
-            return storage.Client.CreateDocumentQuery<int>(storage.CollectionUri, sql, new FeedOptions { PartitionKey = partitionKey })
+            return storage.Client.CreateDocumentQueryAsync<int>(storage.CollectionUri, sql, new FeedOptions { PartitionKey = partitionKey })
                 .ToQueryResult()
                 .FirstOrDefault();
         }
 
         public IEnumerable<string> GetEnqueuedJobIds(string queue, int from, int perPage)
         {
-            return storage.Client.CreateDocumentQuery<Documents.Queue>(storage.CollectionUri, new FeedOptions { PartitionKey = partitionKey })
+            return storage.Client.CreateDocumentQueryAsync<Documents.Queue>(storage.CollectionUri, new FeedOptions { PartitionKey = partitionKey })
                 .Where(q => q.DocumentType == DocumentTypes.Queue && q.Name == queue && q.FetchedAt.IsDefined() == false)
                 .OrderBy(q => q.CreatedOn)
                 .Skip(from).Take(perPage)
@@ -79,7 +79,7 @@ namespace Hangfire.Azure.Queue
 
         public IEnumerable<string> GetFetchedJobIds(string queue, int from, int perPage)
         {
-            return storage.Client.CreateDocumentQuery<Documents.Queue>(storage.CollectionUri, new FeedOptions { PartitionKey = partitionKey })
+            return storage.Client.CreateDocumentQueryAsync<Documents.Queue>(storage.CollectionUri, new FeedOptions { PartitionKey = partitionKey })
                 .Where(q => q.DocumentType == DocumentTypes.Queue && q.Name == queue && q.FetchedAt.IsDefined())
                 .OrderBy(q => q.CreatedOn)
                 .Skip(from).Take(perPage)
@@ -90,7 +90,7 @@ namespace Hangfire.Azure.Queue
         public (int? EnqueuedCount, int? FetchedCount) GetEnqueuedAndFetchedCount(string queue)
         {
 
-            (int EnqueuedCount, int FetchedCount) result = storage.Client.CreateDocumentQuery<Documents.Queue>(storage.CollectionUri, new FeedOptions { PartitionKey = partitionKey })
+            (int EnqueuedCount, int FetchedCount) result = storage.Client.CreateDocumentQueryAsync<Documents.Queue>(storage.CollectionUri, new FeedOptions { PartitionKey = partitionKey })
                 .Where(q => q.DocumentType == DocumentTypes.Queue && q.Name == queue)
                 .Select(q => new { q.Name, EnqueuedCount = q.FetchedAt.IsDefined() ? 0 : 1, FetchedCount = q.FetchedAt.IsDefined() ? 1 : 0 })
                 .ToQueryResult()

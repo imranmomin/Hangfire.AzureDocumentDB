@@ -209,7 +209,7 @@ namespace Hangfire.Azure
             QueueCommand(() =>
             {
                 PartitionKey partitionKey = new PartitionKey((int)DocumentTypes.Set);
-                string[] sets = connection.Storage.Client.CreateDocumentQuery<List>(connection.Storage.CollectionUri, new FeedOptions { PartitionKey = partitionKey })
+                string[] sets = connection.Storage.Client.CreateDocumentQueryAsync<List>(connection.Storage.CollectionUri, new FeedOptions { PartitionKey = partitionKey })
                     .Where(s => s.DocumentType == DocumentTypes.Set && s.Key == key)
                     .Select(s => new { s.Id, s.Value })
                     .ToQueryResult()
@@ -235,7 +235,7 @@ namespace Hangfire.Azure
             QueueCommand(() =>
             {
                 PartitionKey partitionKey = new PartitionKey((int)DocumentTypes.Set);
-                List<Set> sets = connection.Storage.Client.CreateDocumentQuery<Set>(connection.Storage.CollectionUri, new FeedOptions { PartitionKey = partitionKey })
+                List<Set> sets = connection.Storage.Client.CreateDocumentQueryAsync<Set>(connection.Storage.CollectionUri, new FeedOptions { PartitionKey = partitionKey })
                     .Where(s => s.DocumentType == DocumentTypes.Set && s.Key == key)
                     .ToQueryResult()
                     .Where(s => s.Value == value) // value may contain json string.. which interfere with query 
@@ -341,7 +341,7 @@ namespace Hangfire.Azure
                 Data<Hash> data = new Data<Hash>();
 
                 PartitionKey partitionKey = new PartitionKey((int)DocumentTypes.Hash);
-                List<Hash> hashes = connection.Storage.Client.CreateDocumentQuery<Hash>(connection.Storage.CollectionUri, new FeedOptions { PartitionKey = partitionKey })
+                List<Hash> hashes = connection.Storage.Client.CreateDocumentQueryAsync<Hash>(connection.Storage.CollectionUri, new FeedOptions { PartitionKey = partitionKey })
                     .Where(h => h.DocumentType == DocumentTypes.Hash && h.Key == key)
                     .ToQueryResult()
                     .ToList();
@@ -425,7 +425,7 @@ namespace Hangfire.Azure
 
             QueueCommand(() =>
             {
-                string[] lists = connection.Storage.Client.CreateDocumentQuery<List>(connection.Storage.CollectionUri)
+                string[] lists = connection.Storage.Client.CreateDocumentQueryAsync<List>(connection.Storage.CollectionUri)
                     .Where(l => l.DocumentType == DocumentTypes.List && l.Key == key)
                     .Select(l => new { l.Id, l.Value })
                     .ToQueryResult()
@@ -448,7 +448,7 @@ namespace Hangfire.Azure
             QueueCommand(() =>
             {
                 PartitionKey partitionKey = new PartitionKey((int)DocumentTypes.List);
-                string[] lists = connection.Storage.Client.CreateDocumentQuery<List>(connection.Storage.CollectionUri, new FeedOptions { PartitionKey = partitionKey })
+                string[] lists = connection.Storage.Client.CreateDocumentQueryAsync<List>(connection.Storage.CollectionUri, new FeedOptions { PartitionKey = partitionKey })
                      .Where(l => l.DocumentType == DocumentTypes.List && l.Key == key)
                      .OrderByDescending(l => l.CreatedOn)
                      .Select(l => l.Id)

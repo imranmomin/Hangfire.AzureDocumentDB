@@ -37,7 +37,7 @@ namespace Hangfire.Azure
             {
                 logger.Trace("Aggregating records in 'Counter' table.");
 
-                List<Counter> rawCounters = storage.Client.CreateDocumentQuery<Counter>(storage.CollectionUri, new FeedOptions { PartitionKey = partitionKey })
+                List<Counter> rawCounters = storage.Client.CreateDocumentQueryAsync<Counter>(storage.CollectionUri, new FeedOptions { PartitionKey = partitionKey })
                     .Where(c => c.DocumentType == DocumentTypes.Counter && c.Type == CounterTypes.Raw)
                     .ToQueryResult()
                     .ToList();

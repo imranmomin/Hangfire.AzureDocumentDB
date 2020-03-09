@@ -56,7 +56,7 @@ namespace Hangfire.Azure
 
         public IList<ServerDto> Servers()
         {
-            return storage.Client.CreateDocumentQuery<Documents.Server>(storage.CollectionUri, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Server) })
+            return storage.Client.CreateDocumentQueryAsync<Documents.Server>(storage.CollectionUri, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Server) })
                 .Where(s => s.DocumentType == DocumentTypes.Server)
                 .OrderByDescending(s => s.CreatedOn)
                 .ToQueryResult()
@@ -84,7 +84,7 @@ namespace Hangfire.Azure
                 InvocationData invocationData = job.InvocationData;
                 invocationData.Arguments = job.Arguments;
 
-                List<StateHistoryDto> states = storage.Client.CreateDocumentQuery<State>(storage.CollectionUri, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.State) })
+                List<StateHistoryDto> states = storage.Client.CreateDocumentQueryAsync<State>(storage.CollectionUri, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.State) })
                     .Where(s => s.DocumentType == DocumentTypes.State && s.JobId == jobId)
                     .OrderByDescending(s => s.CreatedOn)
                     .ToQueryResult()
@@ -119,7 +119,7 @@ namespace Hangfire.Azure
 
                     // get counts of jobs on state
                     string[] keys = { EnqueuedState.StateName, FailedState.StateName, ProcessingState.StateName, ScheduledState.StateName, SucceededState.StateName, AwaitingState.StateName };
-                    List<IGrouping<string, string>> states = storage.Client.CreateDocumentQuery<Documents.Job>(storage.CollectionUri, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Job) })
+                    List<IGrouping<string, string>> states = storage.Client.CreateDocumentQueryAsync<Documents.Job>(storage.CollectionUri, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Job) })
                          .Where(x => x.DocumentType == DocumentTypes.Job && x.StateName.IsDefined() && keys.Contains(x.StateName))
                          .Select(x => x.StateName)
                          .ToQueryResult()
@@ -141,7 +141,7 @@ namespace Hangfire.Azure
                         }
                     };
 
-                    long servers = storage.Client.CreateDocumentQuery<long>(storage.CollectionUri, sql, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Server) })
+                    long servers = storage.Client.CreateDocumentQueryAsync<long>(storage.CollectionUri, sql, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Server) })
                         .ToQueryResult()
                         .FirstOrDefault();
 
@@ -149,7 +149,7 @@ namespace Hangfire.Azure
 
                     // get sum of stats:succeeded / stats:deleted counters
                     keys = new[] { "stats:succeeded", "stats:deleted" };
-                    List<IGrouping<string, Counter>> counters = storage.Client.CreateDocumentQuery<Counter>(storage.CollectionUri, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Counter) })
+                    List<IGrouping<string, Counter>> counters = storage.Client.CreateDocumentQueryAsync<Counter>(storage.CollectionUri, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Counter) })
                          .Where(x => x.DocumentType == DocumentTypes.Counter && keys.Contains(x.Key))
                          .ToQueryResult()
                          .GroupBy(x => x.Key)
@@ -171,7 +171,7 @@ namespace Hangfire.Azure
                         }
                     };
 
-                    long jobs = storage.Client.CreateDocumentQuery<long>(storage.CollectionUri, sql, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Set) })
+                    long jobs = storage.Client.CreateDocumentQueryAsync<long>(storage.CollectionUri, sql, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Set) })
                         .ToQueryResult()
                         .FirstOrDefault();
 
@@ -294,7 +294,7 @@ namespace Hangfire.Azure
         {
             List<KeyValuePair<string, T>> jobs = new List<KeyValuePair<string, T>>();
 
-            List<Documents.Job> filterJobs = storage.Client.CreateDocumentQuery<Documents.Job>(storage.CollectionUri, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Job) })
+            List<Documents.Job> filterJobs = storage.Client.CreateDocumentQueryAsync<Documents.Job>(storage.CollectionUri, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Job) })
                 .Where(j => j.DocumentType == DocumentTypes.Job && j.StateName == stateName)
                 .OrderByDescending(j => j.CreatedOn)
                 .Skip(from).Take(count)
@@ -336,7 +336,7 @@ namespace Hangfire.Azure
                 }
             };
 
-            List<Documents.Queue> queues = storage.Client.CreateDocumentQuery<Documents.Queue>(storage.CollectionUri, sql, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Queue) })
+            List<Documents.Queue> queues = storage.Client.CreateDocumentQueryAsync<Documents.Queue>(storage.CollectionUri, sql, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Queue) })
                 .ToQueryResult()
                 .ToList();
 
@@ -409,7 +409,7 @@ namespace Hangfire.Azure
                 }
             };
 
-            return storage.Client.CreateDocumentQuery<long>(storage.CollectionUri, sql, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Job) })
+            return storage.Client.CreateDocumentQueryAsync<long>(storage.CollectionUri, sql, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Job) })
                   .ToQueryResult()
                   .FirstOrDefault();
         }
@@ -455,7 +455,7 @@ namespace Hangfire.Azure
             Dictionary<DateTime, long> result = keys.ToDictionary(k => k.Value, v => default(long));
             string[] filter = keys.Keys.ToArray();
 
-            Dictionary<string, int> data = storage.Client.CreateDocumentQuery<Counter>(storage.CollectionUri, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Counter) })
+            Dictionary<string, int> data = storage.Client.CreateDocumentQueryAsync<Counter>(storage.CollectionUri, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Counter) })
                 .Where(c => c.DocumentType == DocumentTypes.Counter)
                 .Where(c => filter.Contains(c.Key))
                 .Select(c => new { c.Key, c.Value })

@@ -48,6 +48,9 @@ namespace Hangfire.Azure
             Options.DatabaseName = database;
             Options.CollectionName = collection;
 
+            // set the partitioning flag on the client helper
+            ClientHelper.enablePartition = Options.EnablePartition;
+
             JsonSerializerSettings settings = new JsonSerializerSettings
             {
                 NullValueHandling = NullValueHandling.Ignore,
@@ -133,11 +136,14 @@ namespace Hangfire.Azure
             {
                 logger.Info($"Creating document collection : {t.Result.Resource.Id}");
                 Uri databaseUri = UriFactory.CreateDatabaseUri(t.Result.Resource.Id);
-                DocumentCollection documentCollection = new DocumentCollection
+                DocumentCollection documentCollection = new DocumentCollection { Id = Options.CollectionName };
+
+                // if the partition option is enable
+                if (Options.EnablePartition)
                 {
-                    Id = Options.CollectionName,
-                    PartitionKey = new PartitionKeyDefinition { Paths = new System.Collections.ObjectModel.Collection<string> { "/type" } }
-                };
+                    documentCollection.PartitionKey = new PartitionKeyDefinition { Paths = new System.Collections.ObjectModel.Collection<string> { "/type" } };
+                }
+
                 return Client.CreateDocumentCollectionIfNotExistsAsync(databaseUri, documentCollection);
             }, TaskContinuationOptions.OnlyOnRanToCompletion).Unwrap();
 

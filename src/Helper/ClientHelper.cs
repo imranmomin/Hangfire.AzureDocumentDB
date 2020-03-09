@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -9,6 +10,45 @@ namespace Hangfire.Azure.Helper
 {
     internal static class ClientHelper
     {
+        public static bool enablePartition;
+
+        /// <summary>
+        /// Extension method to create a query for documents in the Azure Cosmos DB service
+        /// </summary>
+        /// <typeparam name="T">the type of object to query</typeparam>
+        /// <param name="client"></param>
+        /// <param name="documentCollectionUri">The URI of the document collection.</param>
+        /// <param name="feedOptions">The options for processing the query results feed</param>
+        /// <returns></returns>
+        public static IOrderedQueryable<T> CreateDocumentQueryAsync<T>(this DocumentClient client, Uri documentCollectionUri, FeedOptions feedOptions = null)
+        {
+            if (enablePartition == false && feedOptions != null)
+            {
+                feedOptions.PartitionKey = null;
+            }
+
+            return client.CreateDocumentQuery<T>(documentCollectionUri, feedOptions);
+        }
+
+        /// <summary>
+        /// Extension method to create a query for documents in the Azure Cosmos DB service
+        /// </summary>
+        /// <typeparam name="T">the type of object to query</typeparam>
+        /// <param name="client"></param>
+        /// <param name="documentCollectionUri">The URI of the document collection.</param>
+        /// <param name="feedOptions">The options for processing the query results feed</param>
+        /// <returns></returns>
+        public static IQueryable<T> CreateDocumentQueryAsync<T>(this DocumentClient client, Uri documentCollectionOrDatabaseUri, SqlQuerySpec querySpec, FeedOptions feedOptions = null)
+        {
+            if (enablePartition == false && feedOptions != null)
+            {
+                feedOptions.PartitionKey = null;
+            }
+
+            return client.CreateDocumentQuery<T>(documentCollectionOrDatabaseUri, querySpec, feedOptions);
+        }
+
+
         /// <summary>
         /// Creates a document as an asynchronous operation in the Azure Cosmos DB service.
         /// </summary>
@@ -21,6 +61,11 @@ namespace Hangfire.Azure.Helper
         /// <returns></returns>
         internal static Task<ResourceResponse<Document>> CreateDocumentWithRetriesAsync(this DocumentClient client, Uri documentCollectionUri, object document, RequestOptions options = null, bool disableAutomaticIdGeneration = true, CancellationToken cancellationToken = default)
         {
+            if (enablePartition == false && options != null)
+            {
+                options.PartitionKey = null;
+            }
+
             return Task.Run(async () => await client.ExecuteWithRetries(x => x.CreateDocumentAsync(documentCollectionUri, document, options, disableAutomaticIdGeneration, cancellationToken)), cancellationToken);
         }
 
@@ -35,6 +80,11 @@ namespace Hangfire.Azure.Helper
         /// <returns></returns>
         internal static Task<DocumentResponse<T>> ReadDocumentWithRetriesAsync<T>(this DocumentClient client, Uri documentUri, RequestOptions options = null, CancellationToken cancellationToken = default)
         {
+            if (enablePartition == false && options != null)
+            {
+                options.PartitionKey = null;
+            }
+
             return Task.Run(async () => await client.ExecuteWithRetries(x => x.ReadDocumentAsync<T>(documentUri, options, cancellationToken)), cancellationToken);
         }
 
@@ -49,6 +99,11 @@ namespace Hangfire.Azure.Helper
         /// <param name="cancellationToken">(Optional) <see cref="T:System.Threading.CancellationToken" /> representing request cancellation.</param>
         internal static Task<ResourceResponse<Document>> UpsertDocumentWithRetriesAsync(this DocumentClient client, Uri documentCollectionUri, object document, RequestOptions options = null, bool disableAutomaticIdGeneration = false, CancellationToken cancellationToken = default)
         {
+            if (enablePartition == false && options != null)
+            {
+                options.PartitionKey = null;
+            }
+
             return Task.Run(async () => await client.ExecuteWithRetries(x => x.UpsertDocumentAsync(documentCollectionUri, document, options, disableAutomaticIdGeneration, cancellationToken)), cancellationToken);
         }
 
@@ -61,6 +116,11 @@ namespace Hangfire.Azure.Helper
         /// <param name="cancellationToken">(Optional) <see cref="T:System.Threading.CancellationToken" /> representing request cancellation.</param>
         internal static Task<ResourceResponse<Document>> DeleteDocumentWithRetriesAsync(this DocumentClient client, Uri documentUri, RequestOptions options = null, CancellationToken cancellationToken = default)
         {
+            if (enablePartition == false && options != null)
+            {
+                options.PartitionKey = null;
+            }
+
             return Task.Run(async () => await client.ExecuteWithRetries(x => x.DeleteDocumentAsync(documentUri, options, cancellationToken)), cancellationToken);
         }
 
@@ -75,6 +135,11 @@ namespace Hangfire.Azure.Helper
         /// <returns></returns>
         internal static Task<ResourceResponse<Document>> ReplaceDocumentWithRetriesAsync(this DocumentClient client, Uri documentUri, object document, RequestOptions options = null, CancellationToken cancellationToken = default)
         {
+            if (enablePartition == false && options != null)
+            {
+                options.PartitionKey = null;
+            }
+
             return Task.Run(async () => await client.ExecuteWithRetries(x => x.ReplaceDocumentAsync(documentUri, document, options, cancellationToken)), cancellationToken);
         }
 
@@ -88,6 +153,11 @@ namespace Hangfire.Azure.Helper
         /// <returns></returns>
         internal static Task<StoredProcedureResponse<T>> ExecuteStoredProcedureWithRetriesAsync<T>(this DocumentClient client, Uri storedProcedureUri, RequestOptions options = null, CancellationToken cancellationToken = default, params object[] procedureParams)
         {
+            if (enablePartition == false && options != null)
+            {
+                options.PartitionKey = null;
+            }
+
             return Task.Run(async () => await client.ExecuteWithRetries(x => x.ExecuteStoredProcedureAsync<T>(storedProcedureUri, options, cancellationToken, procedureParams)));
         }
 
