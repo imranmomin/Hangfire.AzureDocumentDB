@@ -161,7 +161,18 @@ namespace Hangfire.Azure
                                 .Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries)
                                 .Last()
                         };
-                        Client.UpsertStoredProcedureAsync(CollectionUri, sp).Wait();
+
+                        Uri storedProcedureUri = UriFactory.CreateStoredProcedureUri(Options.DatabaseName, t.Result.Resource.Id, sp.Id);
+                        Task<ResourceResponse<StoredProcedure>> spTask = Client.ReplaceStoredProcedureAsync(storedProcedureUri, sp);
+                        spTask.ContinueWith(x =>
+                        {
+                            if (x.Status == TaskStatus.Faulted && x.Exception.InnerException is DocumentClientException ex && ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+                            {
+                                return Client.CreateStoredProcedureAsync(CollectionUri, sp);
+                            }
+
+                            return Task.FromResult(x.Result);
+                        }).Unwrap().Wait();
                     }
                     stream?.Close();
                 }
