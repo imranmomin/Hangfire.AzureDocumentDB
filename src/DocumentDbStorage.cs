@@ -115,13 +115,14 @@ namespace Hangfire.Azure
             logger.Info($"     Counter Aggregate Interval: {Options.CountersAggregateInterval.TotalSeconds} seconds");
             logger.Info($"     Queue Poll Interval: {Options.QueuePollInterval.TotalSeconds} seconds");
             logger.Info($"     Expiration Check Interval: {Options.ExpirationCheckInterval.TotalSeconds} seconds");
+            logger.Info($"     Partition Enabled: {Options.EnablePartition}");
         }
 
         /// <summary>
         /// Return the name of the database
         /// </summary>
         /// <returns></returns>
-        public override string ToString() => $"DoucmentDb Database : {Options.DatabaseName}";
+        public override string ToString() => $"DoucmentDb : {Options.DatabaseName}";
 
         private void Initialize()
         {
