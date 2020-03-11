@@ -46,7 +46,7 @@ namespace Hangfire.Azure
         public Protocol ConnectionProtocol { get; set; }
 
         /// <summary>
-        /// Gets or sets the partitioning of the document based on /type
+        /// Gets or sets the partitioning of the document based on /type. Default value is false
         /// </summary>
         public bool EnablePartition { get; set; }
 

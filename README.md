@@ -4,17 +4,28 @@
 [![Latest version](https://img.shields.io/nuget/v/Hangfire.AzureDocumentDB.svg)](https://www.nuget.org/packages/Hangfire.AzureDocumentDB)
 [![Build status](https://ci.appveyor.com/api/projects/status/uvxh94dhxcokga47?svg=true)](https://ci.appveyor.com/project/imranmomin/hangfire-azuredocumentdb)
 
-This repo will add a [Microsoft Azure DocumentDB](https://azure.microsoft.com/en-ca/services/documentdb) storage support to [Hangfire](http://hangfire.io) - fire-and-forget, delayed and recurring tasks runner for .NET. Scalable and reliable background job runner. Supports multiple servers, CPU and I/O intensive, long-running and short-running jobs.
+This repo will add a [Microsoft Azure Cosmos DB](https://azure.microsoft.com/en-ca/services/cosmos-db) storage support to [Hangfire](http://hangfire.io) - fire-and-forget, delayed and recurring tasks runner for .NET. Scalable and reliable background job runner. Supports multiple servers, CPU and I/O intensive, long-running and short-running jobs.
 
 
 ## Installation
 
-[Hangfire.AzureDocumentDB](https://www.nuget.org/packages/Hangfire.AzureDocumentDB) is available as a NuGet package. Install it using the NuGet Package Console window:
+[Hangfire.AzureDocumentDB](https://www.nuget.org/packages/Hangfire.AzureDocumentDB) is available on NuGet.
 
+
+Package Manager
 ```powershell
 PM> Install-Package Hangfire.AzureDocumentDB
 ```
 
+.NET CLI
+```
+> dotnet add package Hangfire.AzureDocumentDB
+```
+
+PackageReference
+```xml
+<PackageReference Include="Hangfire.AzureDocumentDB" Version="0.0.0" />
+```
 
 ## Usage
 
@@ -36,7 +47,8 @@ Hangfire.Azure.DocumentDbStorageOptions options = new Hangfire.Azure.DocumentDbS
     CountersAggregateInterval = TimeSpan.FromMinutes(2),
     QueuePollInterval = TimeSpan.FromSeconds(15),
     ConnectionMode = ConnectionMode.Direct,
-    ConnectionProtocol = Protocol.Tcp
+    ConnectionProtocol = Protocol.Tcp,
+    EnablePartition = false // default: false true; to enable partition on /type
 };
 
 GlobalConfiguration.Configuration.UseAzureDocumentDbStorage("<url>", "<authSecret>", "<databaseName>", "<collectionName>", options);
@@ -47,6 +59,12 @@ Hangfire.Azure.DocumentDbStorage storage = new Hangfire.Azure.DocumentDbStorage(
 GlobalConfiguration.Configuration.UseStorage(storage);
 ```
 
+## Recommendations
+- Keep seperate database/collection for the hangfire. (Now you can [enable free tier](https://docs.microsoft.com/en-us/azure/cosmos-db/optimize-dev-test#azure-cosmos-db-free-tier) on Azure)
+- Enable partitioning by ```/type```
+
+## SDK Support
+This package only support using [Microsoft.Azure.DocumentDB](https://www.nuget.org/packages/Microsoft.Azure.DocumentDB/). If you want the support for the latest SDK v3 [Microsoft.Azure.Cosmos](https://www.nuget.org/packages/Microsoft.Azure.Cosmos), you will have to use [Hangfire.AzureCosmosDb](https://github.com/imranmomin/Hangfire.AzureCosmosDb)
 
 ## Questions? Problems?
 
