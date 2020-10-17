@@ -119,17 +119,7 @@ namespace Hangfire.Azure
 
                     // get counts of jobs on state
                     string[] keys = { EnqueuedState.StateName, FailedState.StateName, ProcessingState.StateName, ScheduledState.StateName, SucceededState.StateName, AwaitingState.StateName };
-                    List<IGrouping<string, string>> states = storage.Client.CreateDocumentQueryAsync<Documents.Job>(storage.CollectionUri, new FeedOptions { PartitionKey = new PartitionKey((int)DocumentTypes.Job) })
-                         .Where(x => x.DocumentType == DocumentTypes.Job && x.StateName.IsDefined() && keys.Contains(x.StateName))
-                         .Select(x => x.StateName)
-                         .ToQueryResult()
-                         .GroupBy(x => x)
-                         .ToList();
-
-                    foreach (IGrouping<string, string> state in states)
-                    {
-                        results.Add(state.Key.ToLower(), state.LongCount());
-                    }
+                    results = keys.Select(x => new { Key = x.ToLower(), Value = GetNumberOfJobsByStateName(x) }).Where(x => x.Value > 0).ToDictionary(i => i.Key, i => i.Value);
 
                     // get counts of servers
                     SqlQuerySpec sql = new SqlQuerySpec
