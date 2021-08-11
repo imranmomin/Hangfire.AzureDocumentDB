@@ -17,7 +17,7 @@ function expireDocument(query: string, expireOn: number) {
     }
 
     // append the query to filter by expire_on is not defined or less than $expireOn
-    query = `${query} AND (NOT IS_DEFINED(doc.expire_on) OR doc.expire_on !== ${expireOn})`;
+    query = `${query} AND (NOT IS_DEFINED(doc.expire_on) OR doc.expire_on != ${expireOn})`;
 
     // default response
     response.setBody(responseBody);
