@@ -25,6 +25,7 @@ namespace Hangfire.Azure.Helper
             if (enablePartition == false && feedOptions != null)
             {
                 feedOptions.PartitionKey = null;
+                feedOptions.EnableCrossPartitionQuery = true;
             }
 
             return client.CreateDocumentQuery<T>(documentCollectionUri, feedOptions);
@@ -43,6 +44,7 @@ namespace Hangfire.Azure.Helper
             if (enablePartition == false && feedOptions != null)
             {
                 feedOptions.PartitionKey = null;
+                feedOptions.EnableCrossPartitionQuery = true;
             }
 
             return client.CreateDocumentQuery<T>(documentCollectionOrDatabaseUri, querySpec, feedOptions);
