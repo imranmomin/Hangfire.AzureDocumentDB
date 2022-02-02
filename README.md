@@ -7,6 +7,8 @@
 
 This repo will add a [Microsoft Azure Cosmos DB](https://azure.microsoft.com/en-ca/services/cosmos-db) storage support to [Hangfire](http://hangfire.io) - fire-and-forget, delayed and recurring tasks runner for .NET. Scalable and reliable background job runner. Supports multiple servers, CPU and I/O intensive, long-running and short-running jobs.
 
+# No Maintaince 
+Due to current SDK is not being supported anymore, this project will not longer be maitained. If you want the support for the latest SDK v3 [Microsoft.Azure.Cosmos](https://www.nuget.org/packages/Microsoft.Azure.Cosmos), you will have to use [Hangfire.AzureCosmosDb]
 
 ## Installation
 
